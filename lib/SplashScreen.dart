@@ -22,8 +22,8 @@ class SplashScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/logo2.png',
-                  height: 150,
+                  'assets/images/cc-logo1-rbg.png',
+                  height: 350,
                 ),
                 const SizedBox(height: 20),
 
@@ -32,7 +32,7 @@ class SplashScreen extends StatelessWidget {
                   'Tap to continue',
                   style: TextStyle(
                     color: Colors.orange,
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
