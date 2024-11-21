@@ -1,6 +1,5 @@
 import 'package:campus_connect/SplashScreen.dart';
 import 'package:flutter/material.dart';
-import 'loginScreen.dart';
 
 void main() {
   runApp(const MyApp());
