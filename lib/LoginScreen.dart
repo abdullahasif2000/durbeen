@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ModuleScreen()),
+          MaterialPageRoute(builder: (context) => ModuleScreen(role:role)),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

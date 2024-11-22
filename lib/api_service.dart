@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart'; // Import the crypto package
+import 'package:crypto/crypto.dart';
 
 class ApiService {
   static const String baseUrl = "https://results.gece.edu.pk/geceapi";
@@ -56,6 +56,23 @@ class ApiService {
       }
     } catch (e) {
       throw Exception("Error: $e");
+    }
+  }
+
+  // Fetch cohorts from the API
+  Future<List<dynamic>> fetchCohorts() async {
+    final url = "$baseUrl/fetch_cohortsN.php";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body); // Return the decoded JSON list
+      } else {
+        throw Exception("Failed to fetch cohorts: Status Code ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error fetching cohorts: $e");
     }
   }
 }

@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'SelectCohortScreen.dart';
 
 class ModuleScreen extends StatelessWidget {
-  const ModuleScreen({super.key});
+  final String role;
+
+  const ModuleScreen({super.key, required this.role});
 
   @override
   Widget build(BuildContext context) {
+    // Debugging: Print the user's role
+    print("User role: $role");
+
+    // All available modules
     final List<Map<String, dynamic>> modules = [
       {"title": "Attendance", "icon": Icons.check_circle_outline},
       {"title": "Courses", "icon": Icons.book},
@@ -40,10 +47,29 @@ class ModuleScreen extends StatelessWidget {
             final module = modules[index];
             return GestureDetector(
               onTap: () {
-                // module tap snackbar for checking
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Tapped on ${module["title"]}')),
-                );
+                if (module["title"] == "Mapping" && role != "Admin") {
+                  // Show access denied for non-admins tapping on Mapping
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Access Denied: Admins only'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else if (module["title"] == "Mapping" && role == "Admin") {
+                  // Navigate to SelectCohortScreen for admin
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SelectCohortScreen(),
+                    ),
+                  );
+                } else {
+                  // Placeholder action for other modules
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Tapped on ${module["title"]}')),
+                  );
+                }
               },
               child: Card(
                 elevation: 4,
