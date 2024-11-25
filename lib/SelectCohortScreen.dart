@@ -65,23 +65,38 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
             );
           } else {
             final cohorts = snapshot.data!;
-            return ListView.builder(
-              itemCount: cohorts.length,
-              itemBuilder: (context, index) {
-                return RadioListTile<String>(
-                  title: Text(
-                    cohorts[index],
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Select a Cohort:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
-                  value: cohorts[index],
-                  groupValue: _selectedCohort,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCohort = value; // Update selected cohort
-                    });
-                  },
-                );
-              },
+                  const SizedBox(height: 20),
+                  DropdownButton<String>(
+                    value: _selectedCohort,
+                    hint: const Text(
+                      'Choose Cohort',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    items: cohorts.map((cohort) {
+                      return DropdownMenuItem<String>(
+                        value: cohort,
+                        child: Text(
+                          cohort,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCohort = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
             );
           }
         },
