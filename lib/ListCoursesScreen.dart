@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:data_table_2/data_table_2.dart';
 import 'api_service.dart';
 import 'CreateSectionScreen.dart';
 
@@ -13,7 +14,7 @@ class ListCoursesScreen extends StatefulWidget {
 
 class _ListCoursesScreenState extends State<ListCoursesScreen> {
   late Future<List<Map<String, dynamic>>> _coursesFuture;
-  Map<String, dynamic>? _selectedCourse;
+  final List<Map<String, dynamic>> _selectedCourses = [];
 
   @override
   void initState() {
@@ -35,71 +36,105 @@ class _ListCoursesScreenState extends State<ListCoursesScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _coursesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No courses found for this cohort.'));
-          }
+      body: Padding(
+        padding: const EdgeInsets.only(top: 50.0, left: 8.0, right: 8.0), // Space between AppBar and content
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _coursesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Text('Error: ${snapshot.error}'),
+              );
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No courses found for this cohort.'));
+            }
 
-          final courses = snapshot.data!;
+            final courses = snapshot.data!;
 
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal, // Allow horizontal scrolling for wide tables
-                  child: DataTable(
+            return Column(
+              children: [
+                Expanded(
+                  child: DataTable2(
+                    headingRowColor: WidgetStateProperty.all(Colors.grey[700]),
+                    headingTextStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    columnSpacing: 1,
+                    horizontalMargin: 5,
+                    minWidth: 700,
+                    border: TableBorder.all(color: Colors.grey[300]!, width: 1),
                     columns: const [
+                      DataColumn(label: Text('Sr. No')),
                       DataColumn(label: Text('Course Name')),
                       DataColumn(label: Text('Faculty')),
-
                     ],
-                    rows: courses.map((course) {
-                      return DataRow(
-                        selected: _selectedCourse == course,
-                        onSelectChanged: (isSelected) {
-                          setState(() {
-                            _selectedCourse = isSelected == true ? course : null;
-                          });
-                        },
-                        cells: [
-                          DataCell(Text(course['Name'])),
-                          DataCell(Text(course['FacultyName'])),
+                    rows: List.generate(
+                      courses.length,
+                          (index) {
+                        final course = courses[index];
+                        final isSelected = _selectedCourses.contains(course);
 
-                        ],
-                      );
-                    }).toList(),
+                        return DataRow(
+                          selected: isSelected,
+                          onSelectChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                if (!_selectedCourses.contains(course)) {
+                                  _selectedCourses.add(course);
+                                }
+                              } else {
+                                _selectedCourses.remove(course);
+                              }
+                            });
+                          },
+                          cells: [
+                            DataCell(Text('${index + 1}')),
+                            DataCell(Text(course['Name'], maxLines: 1)),
+                            DataCell(Text(course['FacultyName'], maxLines: 1)),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-              if (_selectedCourse != null) // Display "Proceed" button if a course is selected
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateSectionScreen(
-                            cohort: widget.cohort,
-                            course: _selectedCourse!['Name'],
+                if (_selectedCourses.isNotEmpty) // Display Proceed button if courses are selected
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateSectionScreen(
+                              cohort: widget.cohort,
+                              selectedCourses: _selectedCourses, // Pass as List
+                            ),
                           ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange[700],
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      );
-                    },
-                    child: const Text('Proceed with Selected Course'),
+                      ),
+                      child: const Text(
+                        'Proceed with Selected Courses',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

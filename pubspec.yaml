@@ -37,6 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   crypto: ^3.0.6
+  data_table_2: ^2.5.15
 
 dev_dependencies:
   flutter_test:
