@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'AddStudentToSection.dart';
+import 'api_service.dart';
 
 class CreateSectionScreen extends StatefulWidget {
   final String cohort;
@@ -16,20 +18,9 @@ class CreateSectionScreen extends StatefulWidget {
 
 class _CreateSectionScreenState extends State<CreateSectionScreen> {
   final TextEditingController sectionController = TextEditingController();
-  String? selectedRollNumber; // Variable to store selected roll number
   List<String> studentRollNumbers = [];
-  bool isSectionCreated = false; // Flag to control the visibility of roll number field
+  bool isSectionCreated = false;
 
-  // Placeholder list of roll numbers (replace with API data in the future)
-  List<String> rollNumberOptions = [
-    '12345',
-    '23456',
-    '34567',
-    '45678',
-    '56789',
-  ];
-
-  // Function to create the section
   void createSection() {
     String section = sectionController.text.trim();
 
@@ -41,34 +32,30 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     }
 
     setState(() {
-      isSectionCreated = true; // Set flag to true when section is created
+      isSectionCreated = true;
     });
 
-    // Debugging: Print the details
-    print("Cohort: ${widget.cohort}");
-    print("Selected Courses: ${widget.selectedCourses.map((course) => course['Name']).join(', ')}");
-    print("Section: $section");
-
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Section "$section" created!')),
     );
   }
 
-  // Function to add student roll number to the section
-  void addRollNumber() {
-    if (selectedRollNumber != null) {
+  // Navigate to AddStudentToSection and update student list after adding students
+  void addStudents() async {
+    final updatedRollNumbers = await Navigator.push<List<String>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddStudentToSection(
+          cohort: widget.cohort,
+          selectedCourses: widget.selectedCourses,
+        ),
+      ),
+    );
+
+    if (updatedRollNumbers != null) {
       setState(() {
-        studentRollNumbers.add(selectedRollNumber!);
-        selectedRollNumber = null; // Clear selection after adding
+        studentRollNumbers = updatedRollNumbers;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Roll Number added!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a roll number')),
-      );
     }
   }
 
@@ -86,24 +73,21 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
-      resizeToAvoidBottomInset: true, // Make the screen resize when the keyboard appears
-      body: SingleChildScrollView(  // Allow the screen to scroll when the keyboard is open
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Display cohort dynamically (non-editable)
               TextField(
                 controller: TextEditingController(text: widget.cohort),
                 decoration: const InputDecoration(
                   labelText: 'Cohort',
                   border: OutlineInputBorder(),
                 ),
-                readOnly: true, // Make cohort read-only
+                readOnly: true,
               ),
               const SizedBox(height: 20),
-              // Section Name TextField
               TextField(
                 controller: sectionController,
                 decoration: const InputDecoration(
@@ -129,96 +113,103 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Show created section details in a Card after section is created
               if (isSectionCreated) ...[
-                Card(
-                  elevation: 5,
-                  margin: const EdgeInsets.all(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Cohort: ${widget.cohort}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Section: ${sectionController.text}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Selected Courses:',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        ...widget.selectedCourses.map(
-                              (course) => Text(
-                            '- ${course['Name']} (Faculty: ${course['FacultyName']})',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Display added student roll numbers in the same card
-                        if (studentRollNumbers.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Students in Section:',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          ...studentRollNumbers.map(
-                                (rollNumber) => Text(
-                              '- $rollNumber',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ],
-                      ],
+                // Button to navigate to AddStudentToSection
+                Center(
+                  child: ElevatedButton(
+                    onPressed: addStudents,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange[700],
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Add Students to Section',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Dropdown for roll number input after section is created
-                Row(
+
+                // Table Layout for displaying the Section Details
+                Table(
+                  border: TableBorder.all(),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2),
+                    1: FlexColumnWidth(3),
+                  },
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedRollNumber,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Roll Number',
-                          border: OutlineInputBorder(),
+                    // Header Row for Cohort, Section Name, and Selected Courses
+                    TableRow(
+                      decoration: BoxDecoration(color: Colors.orange[50]),
+                      children: [
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('Cohort: ${widget.cohort}', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                         ),
-                        items: rollNumberOptions.map((rollNumber) {
-                          return DropdownMenuItem<String>(
-                            value: rollNumber,
-                            child: Text(rollNumber),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedRollNumber = value;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: addRollNumber,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[700],
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('Section: ${sectionController.text}', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Add Student',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
+                      ],
                     ),
+                    TableRow(
+                      children: [
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('Selected Courses:'),
+                          ),
+                        ),
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: widget.selectedCourses.map((course) {
+                                return Text('- ${course['Name']} (Faculty: ${course['FacultyName']})');
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Empty Row
+                    TableRow(children: [SizedBox(), SizedBox()]),
                   ],
                 ),
+
+                const SizedBox(height: 20),
+
+                // Student Roll Numbers Table
+                if (studentRollNumbers.isNotEmpty) ...[
+                  const Text(
+                    'Added Students:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Table(
+                    border: TableBorder.all(),
+                    children: studentRollNumbers.map((rollNumber) {
+                      return TableRow(
+                        children: [
+                          TableCell(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(rollNumber),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             ],
           ),

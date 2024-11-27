@@ -1,16 +1,69 @@
 import 'package:flutter/material.dart';
 import 'SelectCohortScreen.dart';
+import 'api_service.dart';
+import 'LoginScreen.dart';
 
-class ModuleScreen extends StatelessWidget {
+class ModuleScreen extends StatefulWidget {
   final String role;
 
   const ModuleScreen({super.key, required this.role});
 
   @override
-  Widget build(BuildContext context) {
-    // Debugging: Print the user's role
-    print("User role: $role");
+  _ModuleScreenState createState() => _ModuleScreenState();
+}
 
+class _ModuleScreenState extends State<ModuleScreen> {
+  String? selectedSession; // Variable to store the selected session
+  List<Map<String, dynamic>> sessions = []; // To hold the session data
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.role == "Admin") {
+      _fetchSessions(); // Fetch available sessions only if role is Admin
+    }
+  }
+
+  // Fetch the available sessions from the API
+  Future<void> _fetchSessions() async {
+    try {
+      final List<dynamic> data = await ApiService().fetchSessions();
+      setState(() {
+        sessions = data.map((session) {
+          return {
+            'id': session['SessionID'],
+            'description': session['Description'],
+            'current': session['Current']
+          };
+        }).toList();
+      });
+    } catch (e) {
+      // Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching sessions: $e')),
+      );
+    }
+  }
+
+  // Handle session selection from the dropdown
+  void _selectSession(String? sessionId) {
+    setState(() {
+      selectedSession = sessionId;
+    });
+    Navigator.pop(context); // Close the drawer after selection
+  }
+
+
+  void _logout() {
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // All available modules
     final List<Map<String, dynamic>> modules = [
       {"title": "Attendance", "icon": Icons.check_circle_outline},
@@ -33,6 +86,51 @@ class ModuleScreen extends StatelessWidget {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
+      // Drawer widget to show session options for admin and logout option
+      drawer: widget.role == "Admin" ? Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.orange,
+              ),
+              child: Text(
+                'Admin Options',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            // Session selector dropdown in the drawer
+            ListTile(
+              title: const Text('Select Session'),
+              trailing: DropdownButton<String>(
+                value: selectedSession,
+                hint: const Text("Choose Session"),
+                icon: const Icon(Icons.arrow_downward),
+                onChanged: (String? newValue) {
+                  _selectSession(newValue);
+                },
+                items: sessions.map<DropdownMenuItem<String>>((session) {
+                  return DropdownMenuItem<String>(
+                    value: session['id'],
+                    child: Text(session['description']),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            // Logout option
+            ListTile(
+              title: const Text('Logout'),
+              onTap: _logout,
+            ),
+          ],
+        ),
+      ) : null,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
@@ -47,7 +145,7 @@ class ModuleScreen extends StatelessWidget {
             final module = modules[index];
             return GestureDetector(
               onTap: () {
-                if (module["title"] == "Mapping" && role != "Admin") {
+                if (module["title"] == "Mapping" && widget.role != "Admin") {
                   // Show access denied for non-admins tapping on Mapping
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -55,7 +153,7 @@ class ModuleScreen extends StatelessWidget {
                       duration: Duration(seconds: 2),
                     ),
                   );
-                } else if (module["title"] == "Mapping" && role == "Admin") {
+                } else if (module["title"] == "Mapping" && widget.role == "Admin") {
                   // Navigate to SelectCohortScreen for admin
                   Navigator.push(
                     context,
@@ -66,8 +164,7 @@ class ModuleScreen extends StatelessWidget {
                 } else {
                   // Placeholder action for other modules
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Tapped on ${module["title"]}')),
+                    SnackBar(content: Text('Tapped on ${module["title"]}')),
                   );
                 }
               },

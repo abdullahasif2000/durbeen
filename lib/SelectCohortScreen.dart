@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:data_table_2/data_table_2.dart';
 import 'api_service.dart';
-import 'ListCoursesScreen.dart';
+import 'CreateSectionScreen.dart';
 
 class SelectCohortScreen extends StatefulWidget {
   const SelectCohortScreen({Key? key}) : super(key: key);
@@ -11,7 +12,9 @@ class SelectCohortScreen extends StatefulWidget {
 
 class _SelectCohortScreenState extends State<SelectCohortScreen> {
   late Future<List<String>> _cohortsFuture;
-  String? _selectedCohort; // To hold the currently selected cohort
+  late Future<List<Map<String, dynamic>>> _coursesFuture;
+  String? _selectedCohort; // Holds the currently selected cohort
+  final List<Map<String, dynamic>> _selectedCourses = []; // Stores selected courses
 
   @override
   void initState() {
@@ -22,10 +25,18 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   Future<List<String>> fetchCohorts() async {
     try {
       final response = await ApiService().fetchCohorts();
-      // Extract only the cohort year and convert to a list of strings
       return response.map<String>((cohort) => cohort['cohort'].toString()).toList();
     } catch (e) {
       throw Exception("Failed to load cohorts: $e");
+    }
+  }
+
+  // Fetch courses for the selected cohort
+  Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
+    try {
+      return await ApiService().fetchCourses(cohort); // Fetch courses for a specific cohort
+    } catch (e) {
+      throw Exception("Failed to load courses: $e");
     }
   }
 
@@ -43,83 +54,145 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
-      body: FutureBuilder<List<String>>(
-        future: _cohortsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(fontSize: 18, color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            );
-          } else if (snapshot.hasData && snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No cohorts available',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              ),
-            );
-          } else {
-            final cohorts = snapshot.data!;
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Select a Cohort:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 20),
-                  DropdownButton<String>(
-                    value: _selectedCohort,
-                    hint: const Text(
-                      'Choose Cohort',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    items: cohorts.map((cohort) {
-                      return DropdownMenuItem<String>(
-                        value: cohort,
-                        child: Text(
-                          cohort,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCohort = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            );
-          }
-        },
-      ),
-      bottomNavigationBar: Padding(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange[700],
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          onPressed: _selectedCohort == null
-              ? null
-              : () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ListCoursesScreen(cohort: _selectedCohort!),
+        child: Column(
+          children: [
+            // Dropdown for selecting cohort
+            FutureBuilder<List<String>>(
+              future: _cohortsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (snapshot.hasData && snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No cohorts available'));
+                }
+
+                final cohorts = snapshot.data!;
+                return DropdownButton<String>(
+                  value: _selectedCohort,
+                  hint: const Text(
+                    'Choose Cohort',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  items: cohorts.map((cohort) {
+                    return DropdownMenuItem<String>(
+                      value: cohort,
+                      child: Text(cohort),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCohort = value;
+                      _coursesFuture = fetchCourses(value!); // Fetch courses when cohort is selected
+                    });
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 20),
+
+            // Display courses once cohort is selected
+            if (_selectedCohort != null)
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _coursesFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('No courses available for this cohort.'));
+                    }
+
+                    final courses = snapshot.data!;
+
+                    return DataTable2(
+                      headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
+                      headingTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      columnSpacing: 1,
+                      horizontalMargin: 5,
+                      minWidth: 700,
+                      border: TableBorder.all(color: Colors.grey[300]!, width: 1),
+                      columns: const [
+                        DataColumn(label: Text('Sr. No')),
+                        DataColumn(label: Text('Course Name')),
+                        DataColumn(label: Text('Faculty')),
+                      ],
+                      rows: List.generate(
+                        courses.length,
+                            (index) {
+                          final course = courses[index];
+                          final isSelected = _selectedCourses.contains(course);
+
+                          return DataRow(
+                            selected: isSelected,
+                            onSelectChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  if (!_selectedCourses.contains(course)) {
+                                    _selectedCourses.add(course);
+                                  }
+                                } else {
+                                  _selectedCourses.remove(course);
+                                }
+                              });
+                            },
+                            cells: [
+                              DataCell(Text('${index + 1}')),
+                              DataCell(Text(course['Name'], maxLines: 1)),
+                              DataCell(Text(course['FacultyName'], maxLines: 1)),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-            );
-          },
-          child: const Text('Continue'),
+
+            const SizedBox(height: 20),
+
+            // Button to proceed to CreateSectionScreen if courses are selected
+            if (_selectedCourses.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateSectionScreen(
+                          cohort: _selectedCohort!,
+                          selectedCourses: _selectedCourses, // Pass selected courses to the next screen
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Proceed with Selected Courses',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -14,14 +14,12 @@ class ApiService {
 
   /// Handles user login for different roles
   Future<Map<String, dynamic>?> login(String email, String password, String role) async {
-    // Map roles to their corresponding API endpoints
     final roleUrls = {
       "Admin": "$baseUrl/usersdataN.php",
       "Student": "$baseUrl/studentsdataN.php",
       "Faculty": "$baseUrl/facultydataN.php",
     };
 
-    // Check for valid role
     if (!roleUrls.containsKey(role)) {
       print("Invalid role provided: $role");
       return null;
@@ -30,28 +28,23 @@ class ApiService {
     final url = roleUrls[role]!;
 
     try {
-      // Fetch data from the API
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final List<dynamic> users = json.decode(response.body);
-
         print("API response received successfully for role: $role");
 
-        // Hash the password
         final hashedPassword = hashPassword(password);
 
-        // Search for a matching user
         for (var user in users) {
-          print("Checking user: ${user['Email']} with hashed password: $hashedPassword");
           if (user['Email'] == email && user['Password'] == hashedPassword) {
             print("Login successful for user: ${user['Email']}");
-            return user; // Return user data
+            return user;
           }
         }
 
         print("Invalid credentials: No matching user found.");
-        return null; // Return null if no match is found
+        return null;
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
         throw Exception("Failed to fetch data. Status Code: ${response.statusCode}");
@@ -97,15 +90,13 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final responseBody = response.body;
-        print("Raw API response: $responseBody"); // Debugging
+        print("Raw API response: $responseBody");
 
-        // Decode the JSON response
         final decodedJson = json.decode(responseBody);
-        print("Decoded JSON: $decodedJson"); // Debugging
+        print("Decoded JSON: $decodedJson");
 
-        // Ensure the response is a List
         if (decodedJson is List) {
-          return List<Map<String, dynamic>>.from(decodedJson); // Return as list of maps
+          return List<Map<String, dynamic>>.from(decodedJson);
         } else {
           print("Unexpected JSON structure. Expected a List, got: $decodedJson");
           throw Exception("Unexpected response format");
@@ -120,4 +111,62 @@ class ApiService {
     }
   }
 
+  /// Fetches students based on cohort
+  Future<List<Map<String, dynamic>>> fetchStudentsByCohort(String cohort) async {
+    final url = "$baseUrl/fetch_students_by_cohortN.php?cohort=$cohort";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final responseBody = response.body;
+        print("Raw API response for students: $responseBody");
+
+        final decodedJson = json.decode(responseBody);
+        print("Decoded JSON for students: $decodedJson");
+
+        if (decodedJson is List) {
+          return List<Map<String, dynamic>>.from(decodedJson);
+        } else {
+          print("Unexpected JSON structure. Expected a List, got: $decodedJson");
+          throw Exception("Unexpected response format");
+        }
+      } else {
+        print("Failed to fetch students. Status code: ${response.statusCode}");
+        throw Exception("Failed to fetch students. Status Code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error fetching students for cohort $cohort: $e");
+      throw Exception("Error fetching students: $e");
+    }
+  }
+
+  /// Fetches available academic sessions from the API
+  Future<List<Map<String, dynamic>>> fetchSessions() async {
+    final url = "$baseUrl/Academic_Sessions.php";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print("Fetched sessions successfully");
+
+        // Convert to a list of maps with the required keys
+        return List<Map<String, dynamic>>.from(data.map((session) {
+          return {
+            'SessionID': session['SessionID'],
+            'Description': session['Description'],
+            'Current': session['Current'],
+          };
+        }));
+      } else {
+        print("Failed to fetch sessions. Status code: ${response.statusCode}");
+        throw Exception("Failed to fetch sessions. Status Code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error fetching sessions: $e");
+      throw Exception("Error fetching sessions: $e");
+    }
+  }
 }
