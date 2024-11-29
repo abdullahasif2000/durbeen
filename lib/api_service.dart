@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
@@ -167,6 +168,33 @@ class ApiService {
     } catch (e) {
       print("Error fetching sessions: $e");
       throw Exception("Error fetching sessions: $e");
+    }
+  }
+  Future<Map<String, dynamic>> createNewSection({
+    required String courseID,
+    required String sectionName,
+    required String sessionID,
+  }) async {
+    final url = "$baseUrl/create_new_sectionN.php";
+    final params = {
+      'CourseID': courseID,
+      'SectionName': sectionName,
+      'SessionID': sessionID,
+    };
+
+    final uri = Uri.parse(url).replace(queryParameters: params);
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        throw Exception("Failed to create section. Status Code: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error creating section: $e");
     }
   }
 }

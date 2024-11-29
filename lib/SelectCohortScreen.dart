@@ -123,8 +123,12 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                       border: TableBorder.all(color: Colors.grey[300]!, width: 1),
                       columns: const [
                         DataColumn(label: Text('Sr. No')),
+
                         DataColumn(label: Text('Course Name')),
-                        DataColumn(label: Text('Faculty')),
+                        DataColumn(label: Text('Faculty Name')),
+                        DataColumn(label: Text('Faculty ID')),
+                        DataColumn(label: Text('Session ID')),
+
                       ],
                       rows: List.generate(
                         courses.length,
@@ -147,13 +151,18 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                             },
                             cells: [
                               DataCell(Text('${index + 1}')),
+
                               DataCell(Text(course['Name'], maxLines: 1)),
                               DataCell(Text(course['FacultyName'], maxLines: 1)),
+                              DataCell(Text(course['FacultyID'].toString())),
+                              DataCell(Text(course['SessionID'].toString())),
+
                             ],
                           );
                         },
                       ),
                     );
+
                   },
                 ),
               ),

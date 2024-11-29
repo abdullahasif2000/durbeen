@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'SelectCohortScreen.dart';
 import 'api_service.dart';
 import 'LoginScreen.dart';
+import 'CreateSectionScreen.dart';  // Import CreateSectionScreen
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ModuleScreen extends StatefulWidget {
   final String role;
@@ -22,6 +24,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
     if (widget.role == "Admin") {
       _fetchSessions(); // Fetch available sessions only if role is Admin
     }
+    _loadSession(); // Load the session ID if already saved
   }
 
   // Fetch the available sessions from the API
@@ -46,16 +49,46 @@ class _ModuleScreenState extends State<ModuleScreen> {
   }
 
   // Handle session selection from the dropdown
-  void _selectSession(String? sessionId) {
+  void _selectSession(String? sessionId) async {
     setState(() {
       selectedSession = sessionId;
     });
+
+    // Save session to SharedPreferences
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('sessionID', sessionId ?? ''); // Save the selected session
+
     Navigator.pop(context); // Close the drawer after selection
   }
 
+  // Retrieve session ID from SharedPreferences
+  void _loadSession() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedSession = prefs.getString('sessionID');
+    });
+  }
+
+  // Navigate to CreateSectionScreen and pass the session ID
+  void _goToCreateSection() {
+    if (selectedSession != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateSectionScreen(
+            cohort: "Cohort Example", // Use the appropriate cohort
+            selectedCourses: [], // Pass selected courses as needed
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a session first')),
+      );
+    }
+  }
 
   void _logout() {
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -87,7 +120,8 @@ class _ModuleScreenState extends State<ModuleScreen> {
         ),
       ),
       // Drawer widget to show session options for admin and logout option
-      drawer: widget.role == "Admin" ? Drawer(
+      drawer: widget.role == "Admin"
+          ? Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -130,7 +164,8 @@ class _ModuleScreenState extends State<ModuleScreen> {
             ),
           ],
         ),
-      ) : null,
+      )
+          : null,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
@@ -162,10 +197,15 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     ),
                   );
                 } else {
-                  // Placeholder action for other modules
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tapped on ${module["title"]}')),
-                  );
+                  // Navigate to CreateSectionScreen for other modules
+                  if (module["title"] == "Courses") {
+                    _goToCreateSection();
+                  } else {
+                    // Placeholder action for other modules
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Tapped on ${module["title"]}')),
+                    );
+                  }
                 }
               },
               child: Card(

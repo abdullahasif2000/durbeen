@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'AddStudentToSection.dart';
 import 'api_service.dart';
 
@@ -21,23 +22,89 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
   List<String> studentRollNumbers = [];
   bool isSectionCreated = false;
 
-  void createSection() {
-    String section = sectionController.text.trim();
+  // Shared Preferences to get SessionID
+  late String sessionID;
 
-    if (section.isEmpty) {
+  // Store section details for displaying in a card
+  String? createdSectionName;
+  String? createdSectionID;
+  List<Map<String, dynamic>>? createdCourses;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessionID();
+  }
+
+  Future<void> _loadSessionID() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      sessionID = prefs.getString('SessionID') ?? '';
+    });
+    debugPrint('Loaded SessionID: $sessionID'); // Debugging session ID load
+  }
+
+  // API Call to create a new section
+  Future<void> createSection() async {
+    String sectionName = sectionController.text.trim();
+
+    if (sectionName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Section name is required')),
       );
       return;
     }
 
-    setState(() {
-      isSectionCreated = true;
-    });
+    if (widget.selectedCourses.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No courses selected!')),
+      );
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Section "$section" created!')),
-    );
+    try {
+      for (var course in widget.selectedCourses) {
+        String courseID = course['CourseID'].toString();
+
+        // Make the API call
+        final response = await ApiService().createNewSection(
+          courseID: courseID,
+          sectionName: sectionName,
+          sessionID: sessionID,
+        );
+
+        if (response['status'] == 'success') {
+          String newSectionID = response['SectionID'].toString(); // Extract SectionID
+          debugPrint('New SectionID: $newSectionID'); // Log the SectionID for debugging
+
+          // Optionally store the SectionID in SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('NewSectionID', newSectionID);
+          debugPrint('Stored SectionID in SharedPreferences: $newSectionID');
+
+          // Store section details for displaying in a card
+          setState(() {
+            createdSectionName = sectionName;
+            createdSectionID = newSectionID;
+            createdCourses = widget.selectedCourses;
+            isSectionCreated = true;
+          });
+
+          // Display success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Section "$sectionName" created successfully with SectionID: $newSectionID')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create section for Course: ${course['Name']}')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating section: $e')),
+      );
+    }
   }
 
   // Navigate to AddStudentToSection and update student list after adding students
@@ -53,6 +120,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     );
 
     if (updatedRollNumbers != null) {
+      debugPrint('Updated Roll Numbers: $updatedRollNumbers'); // Debugging added students
       setState(() {
         studentRollNumbers = updatedRollNumbers;
       });
@@ -114,7 +182,40 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
               ),
               const SizedBox(height: 20),
               if (isSectionCreated) ...[
-                // Button to navigate to AddStudentToSection
+                // Display the created section details in a card
+                Card(
+                  margin: const EdgeInsets.only(top: 20),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Section Created Successfully!',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        Text('Section Name: $createdSectionName'),
+                        Text('Section ID: $createdSectionID'),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Courses:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 5),
+                        for (var course in createdCourses ?? [])
+                          Text(
+                            '- ${course['Name']} (Faculty: ${course['FacultyName']})',
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Center(
                   child: ElevatedButton(
                     onPressed: addStudents,
@@ -131,85 +232,6 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Table Layout for displaying the Section Details
-                Table(
-                  border: TableBorder.all(),
-                  columnWidths: const {
-                    0: FlexColumnWidth(2),
-                    1: FlexColumnWidth(3),
-                  },
-                  children: [
-                    // Header Row for Cohort, Section Name, and Selected Courses
-                    TableRow(
-                      decoration: BoxDecoration(color: Colors.orange[50]),
-                      children: [
-                        TableCell(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text('Cohort: ${widget.cohort}', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                        TableCell(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text('Section: ${sectionController.text}', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    TableRow(
-                      children: [
-                        TableCell(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text('Selected Courses:'),
-                          ),
-                        ),
-                        TableCell(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: widget.selectedCourses.map((course) {
-                                return Text('- ${course['Name']} (Faculty: ${course['FacultyName']})');
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Empty Row
-                    TableRow(children: [SizedBox(), SizedBox()]),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Student Roll Numbers Table
-                if (studentRollNumbers.isNotEmpty) ...[
-                  const Text(
-                    'Added Students:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Table(
-                    border: TableBorder.all(),
-                    children: studentRollNumbers.map((rollNumber) {
-                      return TableRow(
-                        children: [
-                          TableCell(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(rollNumber),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ],
               ],
             ],
           ),
