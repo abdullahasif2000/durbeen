@@ -23,7 +23,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
   bool isSectionCreated = false;
 
   // Shared Preferences to get SessionID
-  late String sessionID;
+  String sessionID = '0';
 
   // Store section details for displaying in a card
   String? createdSectionName;
@@ -36,16 +36,32 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     _loadSessionID();
   }
 
+  // Load SessionID from SharedPreferences
   Future<void> _loadSessionID() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       sessionID = prefs.getString('SessionID') ?? '';
     });
-    debugPrint('Loaded SessionID: $sessionID'); // Debugging session ID load
+    debugPrint('Loaded SessionID: $sessionID');
   }
+
 
   // API Call to create a new section
   Future<void> createSection() async {
+    // Ensure SessionID is loaded
+    if (sessionID == '0' || sessionID.isEmpty) {
+      await _loadSessionID();
+    }
+
+    debugPrint('SessionID before API call: $sessionID');
+
+    if (sessionID == '0' || sessionID.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('SessionID is not loaded properly.')),
+      );
+      return;
+    }
+
     String sectionName = sectionController.text.trim();
 
     if (sectionName.isEmpty) {
@@ -66,7 +82,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       for (var course in widget.selectedCourses) {
         String courseID = course['CourseID'].toString();
 
-        // Make the API call
+        //  API call
         final response = await ApiService().createNewSection(
           courseID: courseID,
           sectionName: sectionName,
@@ -74,15 +90,12 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
         );
 
         if (response['status'] == 'success') {
-          String newSectionID = response['SectionID'].toString(); // Extract SectionID
-          debugPrint('New SectionID: $newSectionID'); // Log the SectionID for debugging
+          String newSectionID = response['SectionID'].toString();
+          debugPrint('New SectionID: $newSectionID');
 
-          // Optionally store the SectionID in SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('NewSectionID', newSectionID);
-          debugPrint('Stored SectionID in SharedPreferences: $newSectionID');
 
-          // Store section details for displaying in a card
           setState(() {
             createdSectionName = sectionName;
             createdSectionID = newSectionID;
@@ -90,24 +103,60 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
             isSectionCreated = true;
           });
 
-          // Display success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Section "$sectionName" created successfully with SectionID: $newSectionID')),
           );
         } else {
+          debugPrint('Failed response: ${response.toString()}');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to create section for Course: ${course['Name']}')),
           );
         }
       }
     } catch (e) {
+      debugPrint('Error creating section: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating section: $e')),
       );
     }
   }
 
-  // Navigate to AddStudentToSection and update student list after adding students
+  // API Call to delete the section using SectionID
+  Future<void> deleteSection(String sectionID) async {
+    debugPrint('Attempting to delete SectionID: $sectionID');
+    try {
+      final response = await ApiService().deleteSection(sectionID);
+
+      if (response['status'] == 'success') {
+        // Clear the saved SectionID from SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('NewSectionID');
+
+        setState(() {
+          isSectionCreated = false;
+          createdSectionName = null;
+          createdSectionID = null;
+          createdCourses = null;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Section deleted successfully.')),
+        );
+      } else {
+        debugPrint('Failed to delete Section: ${response.toString()}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete section.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error deleting section: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting section: $e')),
+      );
+    }
+  }
+
+  // Add students to section
   void addStudents() async {
     final updatedRollNumbers = await Navigator.push<List<String>>(
       context,
@@ -120,7 +169,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     );
 
     if (updatedRollNumbers != null) {
-      debugPrint('Updated Roll Numbers: $updatedRollNumbers'); // Debugging added students
+      debugPrint('Updated Roll Numbers: $updatedRollNumbers');
       setState(() {
         studentRollNumbers = updatedRollNumbers;
       });
@@ -182,7 +231,6 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
               ),
               const SizedBox(height: 20),
               if (isSectionCreated) ...[
-                // Display the created section details in a card
                 Card(
                   margin: const EdgeInsets.only(top: 20),
                   elevation: 4,
@@ -194,6 +242,15 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              deleteSection(createdSectionID!);
+                            },
+                          ),
+                        ),
                         Text(
                           'Section Created Successfully!',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

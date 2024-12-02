@@ -54,12 +54,14 @@ class _ModuleScreenState extends State<ModuleScreen> {
       selectedSession = sessionId;
     });
 
-    // Save session to SharedPreferences
+    // Save session to SharedPreferences with a consistent key
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('sessionID', sessionId ?? ''); // Save the selected session
+    prefs.setString('SessionID', sessionId ?? '');
+    debugPrint('Saved SessionID: $sessionId'); //
 
     Navigator.pop(context); // Close the drawer after selection
   }
+
 
   // Retrieve session ID from SharedPreferences
   void _loadSession() async {

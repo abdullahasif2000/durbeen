@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
@@ -170,6 +169,8 @@ class ApiService {
       throw Exception("Error fetching sessions: $e");
     }
   }
+
+  /// Creates a new section
   Future<Map<String, dynamic>> createNewSection({
     required String courseID,
     required String sectionName,
@@ -195,6 +196,29 @@ class ApiService {
       }
     } catch (e) {
       throw Exception("Error creating section: $e");
+    }
+  }
+
+  /// Deletes a section based on SectionID
+  Future<Map<String, dynamic>> deleteSection(String sectionID) async {
+    final url = "$baseUrl/delete_this_sectionN.php";
+    final params = {
+      'SectionID': sectionID,
+    };
+
+    final uri = Uri.parse(url).replace(queryParameters: params);
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else {
+        throw Exception("Failed to delete section. Status Code: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error deleting section: $e");
     }
   }
 }
