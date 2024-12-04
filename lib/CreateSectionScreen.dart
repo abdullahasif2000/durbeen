@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AddStudentToSection.dart';
+import 'ViewSectionScreen.dart';
 import 'api_service.dart';
 
 class CreateSectionScreen extends StatefulWidget {
@@ -10,8 +12,8 @@ class CreateSectionScreen extends StatefulWidget {
   const CreateSectionScreen({
     required this.cohort,
     required this.selectedCourses,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   _CreateSectionScreenState createState() => _CreateSectionScreenState();
@@ -45,17 +47,48 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     debugPrint('Loaded SessionID: $sessionID');
   }
 
+  // Retrieve the selected CourseIDs from SharedPreferences
+  Future<List<String>> _getSelectedCourseIDs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final courseIDsString = prefs.getString('SelectedCourseIDs');
+    if (courseIDsString != null) {
+      return List<String>.from(jsonDecode(courseIDsString));
+    }
+    return [];
+  }
+
+  // check if section already exists
+  Future<bool> checkIfSectionExists(String sectionName, List<String> selectedCourseIDs) async {
+    try {
+      for (var courseID in selectedCourseIDs) {
+        // Make the API call to fetch sections for the course
+        final response = await ApiService().fetchSections(
+          courseID: courseID,
+          sessionID: sessionID,
+        );
+
+        // Check if any of the fetched sections already have the same name
+        for (var section in response) {
+          if (section['SectionName'] == sectionName) {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking existing sections: $e');
+      return false;
+    }
+    return false; //no match found
+  }
 
   // API Call to create a new section
   Future<void> createSection() async {
-    // Ensure SessionID is loaded
-    if (sessionID == '0' || sessionID.isEmpty) {
+    // make sure SessionID is loaded
+    if (sessionID.isEmpty || sessionID == '0') {
       await _loadSessionID();
     }
 
-    debugPrint('SessionID before API call: $sessionID');
-
-    if (sessionID == '0' || sessionID.isEmpty) {
+    if (sessionID.isEmpty || sessionID == '0') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('SessionID is not loaded properly.')),
       );
@@ -71,18 +104,27 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       return;
     }
 
-    if (widget.selectedCourses.isEmpty) {
+    // Retrieve selected CourseIDs from SharedPreferences
+    final selectedCourseIDs = await _getSelectedCourseIDs();
+    if (selectedCourseIDs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No courses selected!')),
       );
       return;
     }
 
-    try {
-      for (var course in widget.selectedCourses) {
-        String courseID = course['CourseID'].toString();
+    // Check if the section name already exists for the selected courses
+    bool isSectionExist = await checkIfSectionExists(sectionName, selectedCourseIDs);
+    if (isSectionExist) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Section name already exists!')),
+      );
+      return;
+    }
 
-        //  API call
+    try {
+      for (var courseID in selectedCourseIDs) {
+        // API call to create the section
         final response = await ApiService().createNewSection(
           courseID: courseID,
           sectionName: sectionName,
@@ -109,7 +151,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
         } else {
           debugPrint('Failed response: ${response.toString()}');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to create section for Course: ${course['Name']}')),
+            SnackBar(content: Text('Failed to create section for CourseID: $courseID')),
           );
         }
       }
@@ -117,41 +159,6 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       debugPrint('Error creating section: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating section: $e')),
-      );
-    }
-  }
-
-  // API Call to delete the section using SectionID
-  Future<void> deleteSection(String sectionID) async {
-    debugPrint('Attempting to delete SectionID: $sectionID');
-    try {
-      final response = await ApiService().deleteSection(sectionID);
-
-      if (response['status'] == 'success') {
-        // Clear the saved SectionID from SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('NewSectionID');
-
-        setState(() {
-          isSectionCreated = false;
-          createdSectionName = null;
-          createdSectionID = null;
-          createdCourses = null;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Section deleted successfully.')),
-        );
-      } else {
-        debugPrint('Failed to delete Section: ${response.toString()}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete section.')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error deleting section: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting section: $e')),
       );
     }
   }
@@ -242,16 +249,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              deleteSection(createdSectionID!);
-                            },
-                          ),
-                        ),
-                        Text(
+                        const Text(
                           'Section Created Successfully!',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
@@ -259,7 +257,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                         Text('Section Name: $createdSectionName'),
                         Text('Section ID: $createdSectionID'),
                         const SizedBox(height: 10),
-                        Text(
+                        const Text(
                           'Courses:',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -290,6 +288,31 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                   ),
                 ),
               ],
+              const SizedBox(height: 20),
+              // Add the "View Sections" button here
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ViewSectionScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'View Sections',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

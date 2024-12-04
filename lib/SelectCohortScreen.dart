@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'api_service.dart';
 import 'CreateSectionScreen.dart';
+import 'dart:convert';
 
 class SelectCohortScreen extends StatefulWidget {
   const SelectCohortScreen({Key? key}) : super(key: key);
@@ -38,6 +40,14 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
     } catch (e) {
       throw Exception("Failed to load courses: $e");
     }
+  }
+
+  // Save selected courses' IDs to SharedPreferences
+  Future<void> _saveSelectedCourseIDs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final selectedCourseIDs = _selectedCourses.map((course) => course['CourseID'].toString()).toList();
+    await prefs.setString('SelectedCourseIDs', jsonEncode(selectedCourseIDs));
+    debugPrint('Saved CourseIDs to SharedPreferences: $selectedCourseIDs');
   }
 
   @override
@@ -123,12 +133,10 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                       border: TableBorder.all(color: Colors.grey[300]!, width: 1),
                       columns: const [
                         DataColumn(label: Text('Sr. No')),
-
                         DataColumn(label: Text('Course Name')),
                         DataColumn(label: Text('Faculty Name')),
                         DataColumn(label: Text('Faculty ID')),
                         DataColumn(label: Text('Session ID')),
-
                       ],
                       rows: List.generate(
                         courses.length,
@@ -151,18 +159,15 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                             },
                             cells: [
                               DataCell(Text('${index + 1}')),
-
                               DataCell(Text(course['Name'], maxLines: 1)),
                               DataCell(Text(course['FacultyName'], maxLines: 1)),
                               DataCell(Text(course['FacultyID'].toString())),
                               DataCell(Text(course['SessionID'].toString())),
-
                             ],
                           );
                         },
                       ),
                     );
-
                   },
                 ),
               ),
@@ -174,7 +179,8 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    await _saveSelectedCourseIDs(); // Save selected course IDs before navigation
                     Navigator.push(
                       context,
                       MaterialPageRoute(

@@ -199,6 +199,23 @@ class ApiService {
     }
   }
 
+  // Fetch sections based on CourseID and SessionID
+  Future<List<Map<String, dynamic>>> fetchSections({
+    required String courseID,
+    required String sessionID,
+  }) async {
+    final url =
+        'https://results.gece.edu.pk/geceapi/fetch_sectionsN.php?CourseID=$courseID&SessionID=$sessionID';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    } else {
+      throw Exception("Failed to load sections: ${response.body}");
+    }
+  }
+
+
+
   /// Deletes a section based on SectionID
   Future<Map<String, dynamic>> deleteSection(String sectionID) async {
     final url = "$baseUrl/delete_this_sectionN.php";
