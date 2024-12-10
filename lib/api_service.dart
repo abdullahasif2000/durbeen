@@ -13,7 +13,8 @@ class ApiService {
   }
 
   /// Handles user login for different roles
-  Future<Map<String, dynamic>?> login(String email, String password, String role) async {
+  Future<Map<String, dynamic>?> login(String email, String password,
+      String role) async {
     final roleUrls = {
       "Admin": "$baseUrl/usersdataN.php",
       "Student": "$baseUrl/studentsdataN.php",
@@ -47,7 +48,8 @@ class ApiService {
         return null;
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch data. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error during login: $e");
@@ -73,7 +75,8 @@ class ApiService {
         }
       } else {
         print("Failed to fetch cohorts. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch cohorts. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch cohorts. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching cohorts: $e");
@@ -98,12 +101,14 @@ class ApiService {
         if (decodedJson is List) {
           return List<Map<String, dynamic>>.from(decodedJson);
         } else {
-          print("Unexpected JSON structure. Expected a List, got: $decodedJson");
+          print(
+              "Unexpected JSON structure. Expected a List, got: $decodedJson");
           throw Exception("Unexpected response format");
         }
       } else {
         print("Failed to fetch courses. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch courses. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch courses. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching courses for cohort $cohort: $e");
@@ -112,7 +117,8 @@ class ApiService {
   }
 
   /// Fetches students based on cohort
-  Future<List<Map<String, dynamic>>> fetchStudentsByCohort(String cohort) async {
+  Future<List<Map<String, dynamic>>> fetchStudentsByCohort(
+      String cohort) async {
     final url = "$baseUrl/fetch_students_by_cohortN.php?cohort=$cohort";
 
     try {
@@ -128,12 +134,14 @@ class ApiService {
         if (decodedJson is List) {
           return List<Map<String, dynamic>>.from(decodedJson);
         } else {
-          print("Unexpected JSON structure. Expected a List, got: $decodedJson");
+          print(
+              "Unexpected JSON structure. Expected a List, got: $decodedJson");
           throw Exception("Unexpected response format");
         }
       } else {
         print("Failed to fetch students. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch students. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch students. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching students for cohort $cohort: $e");
@@ -162,7 +170,8 @@ class ApiService {
         }));
       } else {
         print("Failed to fetch sessions. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch sessions. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch sessions. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching sessions: $e");
@@ -192,7 +201,8 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
-        throw Exception("Failed to create section. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to create section. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error creating section: $e");
@@ -215,7 +225,6 @@ class ApiService {
   }
 
 
-
   /// Deletes a section based on SectionID
   Future<Map<String, dynamic>> deleteSection(String sectionID) async {
     final url = "$baseUrl/delete_this_sectionN.php";
@@ -232,10 +241,70 @@ class ApiService {
         final data = json.decode(response.body);
         return data;
       } else {
-        throw Exception("Failed to delete section. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to delete section. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error deleting section: $e");
     }
   }
+
+  /// Adds a student to a section
+  Future<bool> addStudentToSection({
+    required String sessionID,
+    required String courseID,
+    required String sectionID,
+    required String rollNumber,
+  }) async {
+    final url = "$baseUrl/add_students_to_sectionN.php";
+    final params = {
+      'SessionID': sessionID,
+      'CourseID': courseID,
+      'SectionID': sectionID,
+      'rollNumber': rollNumber,
+    };
+
+    final uri = Uri.parse(url).replace(queryParameters: params);
+    print("Sending API request to $url with params: $params");
+
+    try {
+      final response = await http.get(uri);
+      print("API Response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        // API response is a single integer as string ("1" for success)
+        return response.body.trim() == "1";
+      } else {
+        throw Exception(
+            "Failed to add student to section. Status Code: ${response
+                .statusCode}");
+      }
+    } catch (e) {
+      print("Error adding student to section: $e");
+      throw Exception("Error adding student to section: $e");
+    }
+  }
+  /// fetch mapped student details
+  Future<List<Map<String, dynamic>>> fetchMappedStudents({
+    required String sessionID,
+    required String sectionID,
+    required String courseID,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/fetch_section_studentsN.php'),
+      body: {
+        'SessionID': sessionID,
+        'SectionID': sectionID,
+        'CourseID': courseID,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List;
+      return data.map((student) => student as Map<String, dynamic>).toList();
+    } else {
+      throw Exception('Failed to fetch mapped students');
+    }
+  }
+
 }

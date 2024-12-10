@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'AddStudentToSection.dart';
 import 'ViewSectionScreen.dart';
+import 'AddStudentToSection.dart';
 import 'api_service.dart';
 
 class CreateSectionScreen extends StatefulWidget {
@@ -21,7 +21,6 @@ class CreateSectionScreen extends StatefulWidget {
 
 class _CreateSectionScreenState extends State<CreateSectionScreen> {
   final TextEditingController sectionController = TextEditingController();
-  List<String> studentRollNumbers = [];
   bool isSectionCreated = false;
 
   // Shared Preferences to get SessionID
@@ -29,7 +28,6 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
 
   // Store section details for displaying in a card
   String? createdSectionName;
-  String? createdSectionID;
   List<Map<String, dynamic>>? createdCourses;
 
   @override
@@ -57,8 +55,9 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     return [];
   }
 
-  // check if section already exists
-  Future<bool> checkIfSectionExists(String sectionName, List<String> selectedCourseIDs) async {
+  // Check if section already exists
+  Future<bool> checkIfSectionExists(
+      String sectionName, List<String> selectedCourseIDs) async {
     try {
       for (var courseID in selectedCourseIDs) {
         // Make the API call to fetch sections for the course
@@ -78,12 +77,12 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       debugPrint('Error checking existing sections: $e');
       return false;
     }
-    return false; //no match found
+    return false; // no match found
   }
 
   // API Call to create a new section
   Future<void> createSection() async {
-    // make sure SessionID is loaded
+    // Ensure SessionID is loaded
     if (sessionID.isEmpty || sessionID == '0') {
       await _loadSessionID();
     }
@@ -122,6 +121,8 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       return;
     }
 
+    List<String> createdSectionIDs = []; // List to store SectionIDs for selected courses
+
     try {
       for (var courseID in selectedCourseIDs) {
         // API call to create the section
@@ -135,19 +136,8 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
           String newSectionID = response['SectionID'].toString();
           debugPrint('New SectionID: $newSectionID');
 
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('NewSectionID', newSectionID);
-
-          setState(() {
-            createdSectionName = sectionName;
-            createdSectionID = newSectionID;
-            createdCourses = widget.selectedCourses;
-            isSectionCreated = true;
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Section "$sectionName" created successfully with SectionID: $newSectionID')),
-          );
+          // Add the new SectionID to the list
+          createdSectionIDs.add(newSectionID);
         } else {
           debugPrint('Failed response: ${response.toString()}');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -155,31 +145,32 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
           );
         }
       }
+
+      // Overwrite the list of SectionIDs in SharedPreferences
+      if (createdSectionIDs.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Convert List<String> to JSON String for storage
+        String sectionIDsJson = jsonEncode(createdSectionIDs);
+        await prefs.setString('CreatedSectionIDs', sectionIDsJson);
+
+        debugPrint('Overwritten SectionIDs: $sectionIDsJson');
+
+        setState(() {
+          createdSectionName = sectionName;
+          createdCourses = widget.selectedCourses;
+          isSectionCreated = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Section(s) "$sectionName" created successfully.')),
+        );
+      }
     } catch (e) {
       debugPrint('Error creating section: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating section: $e')),
       );
-    }
-  }
-
-  // Add students to section
-  void addStudents() async {
-    final updatedRollNumbers = await Navigator.push<List<String>>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddStudentToSection(
-          cohort: widget.cohort,
-          selectedCourses: widget.selectedCourses,
-        ),
-      ),
-    );
-
-    if (updatedRollNumbers != null) {
-      debugPrint('Updated Roll Numbers: $updatedRollNumbers');
-      setState(() {
-        studentRollNumbers = updatedRollNumbers;
-      });
     }
   }
 
@@ -255,7 +246,6 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text('Section Name: $createdSectionName'),
-                        Text('Section ID: $createdSectionID'),
                         const SizedBox(height: 10),
                         const Text(
                           'Courses:',
@@ -270,26 +260,8 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: addStudents,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange[700],
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'Add Students to Section',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
               ],
               const SizedBox(height: 20),
-              // Add the "View Sections" button here
               Center(
                 child: ElevatedButton(
                   onPressed: () {
@@ -309,6 +281,30 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                   ),
                   child: const Text(
                     'View Sections',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddStudentToSectionScreen(cohort: widget.cohort),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Add Student',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),

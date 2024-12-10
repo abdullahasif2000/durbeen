@@ -47,6 +47,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
     final prefs = await SharedPreferences.getInstance();
     final selectedCourseIDs = _selectedCourses.map((course) => course['CourseID'].toString()).toList();
     await prefs.setString('SelectedCourseIDs', jsonEncode(selectedCourseIDs));
+    await prefs.setString('CourseIDs', jsonEncode(selectedCourseIDs)); // Save under 'CourseIDs'
     debugPrint('Saved CourseIDs to SharedPreferences: $selectedCourseIDs');
   }
 
