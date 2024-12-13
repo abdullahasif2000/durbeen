@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'package:fluttertoast/fluttertoast.dart'; // Add this for toast messages
 
 class AddStudentToSectionScreen extends StatefulWidget {
   final String cohort;
@@ -15,10 +16,12 @@ class AddStudentToSectionScreen extends StatefulWidget {
 
 class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> addedStudents = [];
   String? selectedRollNumber;
   List<String> sectionIDs = [];
   List<String> courseIDs = [];
   String? sessionID;
+  bool isStudentMapped = false; // Flag to enable/disable the "View Mapped Students" button
 
   @override
   void initState() {
@@ -30,10 +33,8 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
-      // Retrieve SessionID
       sessionID = prefs.getString('SessionID');
 
-      // Retrieve SectionIDs
       final sectionData = prefs.getString('CreatedSectionIDs');
       if (sectionData != null) {
         try {
@@ -44,7 +45,6 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
         }
       }
 
-      // Retrieve CourseIDs
       final courseData = prefs.getString('CourseIDs');
       if (courseData != null) {
         try {
@@ -56,15 +56,11 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       }
     });
 
-    // Debugging info
     print("SessionID: $sessionID");
     print("SectionIDs: $sectionIDs");
     print("CourseIDs: $courseIDs");
 
-    // Fetch students based on the cohort
     await _fetchStudents();
-    // Fetch students already added to the section
-    await _fetchMappedStudents();
   }
 
   Future<void> _fetchStudents() async {
@@ -83,7 +79,10 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   }
 
   Future<void> _fetchMappedStudents() async {
-    if (sessionID == null || sectionIDs.isEmpty || courseIDs.isEmpty) {
+    if (sessionID == null || sessionID!.isEmpty || sectionIDs.isEmpty ||
+        courseIDs.isEmpty) {
+      print(
+          'Validation failed: sessionID=$sessionID, sectionIDs=$sectionIDs, courseIDs=$courseIDs');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Invalid SessionID, SectionIDs, or CourseIDs.')),
       );
@@ -95,22 +94,39 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       for (int i = 0; i < sectionIDs.length; i++) {
         final sectionID = sectionIDs[i];
         final courseID = courseIDs[i];
+
+        if (sectionID.isEmpty || courseID.isEmpty) {
+          print(
+              'Invalid SectionID or CourseID at index $i. SectionID=$sectionID, CourseID=$courseID');
+          continue;
+        }
+
+        print(
+            'Fetching students: SessionID=$sessionID, SectionID=$sectionID, CourseID=$courseID');
+
         final mappedStudents = await ApiService().fetchMappedStudents(
-          sessionID: sessionID!,
-          sectionID: sectionID,
-          courseID: courseID,
+          SessionID: sessionID!,
+          SectionID: sectionID,
+          CourseID: courseID,
         );
+
+        if (mappedStudents == null || mappedStudents.isEmpty) {
+          print(
+              'No students returned for SectionID=$sectionID, CourseID=$courseID');
+          continue;
+        }
 
         allMappedStudents.addAll(mappedStudents);
       }
 
       setState(() {
-        students = allMappedStudents;
+        addedStudents = allMappedStudents;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error fetching mapped students: $e');
+      print('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch mapped students')),
+        SnackBar(content: Text('Failed to fetch mapped students: $e')),
       );
     }
   }
@@ -135,9 +151,11 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
         );
 
         if (success) {
-          print('Student added successfully to Section $sectionID for Course $courseID!');
+          print(
+              'Student added successfully to Section $sectionID for Course $courseID!');
         } else {
-          print('Failed to add student to Section $sectionID for Course $courseID.');
+          print(
+              'Failed to add student to Section $sectionID for Course $courseID.');
         }
       }
 
@@ -145,13 +163,39 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
         SnackBar(content: Text('Student mapped to all sections successfully!')),
       );
 
-      // Fetch updated list of students after mapping
+      // Enable the "View Mapped Students" button
+      setState(() {
+        isStudentMapped = true;
+      });
+
+      // Fetch updated mapped students
       await _fetchMappedStudents();
     } catch (e) {
       print('Error mapping student: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error mapping student to sections.')),
       );
+    }
+  }
+
+  Future<void> _removeStudentFromSection(String sessionID, String courseID, String rollNumber) async {
+    try {
+      final success = await ApiService().removeStudentFromSection(
+        sessionID: sessionID,
+        courseID: courseID,
+        rollNumber: rollNumber,
+      );
+
+      if (success) {
+        Fluttertoast.showToast(msg: 'Student removed successfully!');
+        // Refresh the mapped students list
+        await _fetchMappedStudents();
+      } else {
+        Fluttertoast.showToast(msg: 'Failed to remove student.');
+      }
+    } catch (e) {
+      print('Error removing student: $e');
+      Fluttertoast.showToast(msg: 'Error removing student.');
     }
   }
 
@@ -172,61 +216,88 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              value: selectedRollNumber,
-              hint: Text('Select Student Roll Number'),
-              items: students.map((student) {
-                return DropdownMenuItem<String>(
-                  value: student['RollNumber'],
-                  child: Text('${student['RollNumber']} - ${student['Name']}'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedRollNumber = value;
-                });
-              },
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: selectedRollNumber == null
-                  ? null
-                  : () async {
-                await _mapStudentToSections(selectedRollNumber!);
-              },
-              child: Text('Map Selected Student to All Sections'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Students Added to Sections',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: students.length,
-                itemBuilder: (context, index) {
-                  final student = students[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text('Roll Number: ${student['RollNumber']}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Name: ${student['Name']}'),
-                          Text('Session ID: ${student['SessionID']}'),
-                          Text('Section ID: ${student['SectionID']}'),
-                          Text('Course ID: ${student['CourseID']}'),
-                        ],
-                      ),
-                    ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedRollNumber,
+                hint: Text('Select Student Roll Number'),
+                items: students.map((student) {
+                  return DropdownMenuItem<String>(
+                    value: student['RollNumber'],
+                    child: Text(
+                        '${student['RollNumber']} - ${student['Name']}'),
                   );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedRollNumber = value;
+                  });
                 },
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: selectedRollNumber == null
+                    ? null
+                    : () async {
+                  await _mapStudentToSections(selectedRollNumber!);
+                },
+                child: Text('Map Selected Student to All Sections'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: isStudentMapped
+                    ? () async {
+                  await _fetchMappedStudents();
+                }
+                    : null,
+                child: Text('View Mapped Students'),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Mapped Students in Sections',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              SizedBox(
+                height: 300, // You can adjust the height of the DataTable
+                child: SingleChildScrollView(
+                  child: DataTable(
+                    columns: [
+                      DataColumn(label: Text('Roll Number')),
+                      DataColumn(label: Text('Name')),
+                      DataColumn(label: Text('Session ID')),
+                      DataColumn(label: Text('Section ID')),
+                      DataColumn(label: Text('Course ID')),
+                      DataColumn(label: Text('Actions')), // New column for actions
+                    ],
+                    rows: addedStudents.map((student) {
+                      return DataRow(cells: [
+                        DataCell(Text(student['RollNumber'])),
+                        DataCell(Text(student['Name'])),
+                        DataCell(Text(student['SessionID'])),
+                        DataCell(Text(student['SectionID'])),
+                        DataCell(Text(student['CourseID'])),
+                        DataCell(
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await _removeStudentFromSection(
+                                student['SessionID'],
+                                student['CourseID'],
+                                student['RollNumber'],
+                              );
+                            },
+                          ),
+                        ),
+                      ]);
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

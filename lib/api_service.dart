@@ -286,24 +286,71 @@ class ApiService {
   }
   /// fetch mapped student details
   Future<List<Map<String, dynamic>>> fetchMappedStudents({
+    required String SessionID,
+    required String CourseID,
+    required String SectionID,
+  }) async {
+    final body = {
+      'SessionID': SessionID,
+      'CourseID': CourseID,
+      'SectionID': SectionID,
+    };
+
+    print('Sending request to: $baseUrl/fetch_section_studentsN.php');
+    print('Request body: $body');
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://results.gece.edu.pk/geceapi/fetch_section_studentsN.php'
+              '?SessionID=$SessionID&CourseID=$CourseID&SectionID=$SectionID',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        return data.map((student) => student as Map<String, dynamic>).toList();
+      } else {
+        print('Error response: ${response.body}');
+        throw Exception('Failed to fetch mapped students');
+      }
+    } catch (e) {
+      print('Exception caught: $e');
+      throw Exception('An error occurred while fetching mapped students');
+    }
+  }
+// Remove student from section API
+  Future<bool> removeStudentFromSection({
+    required String rollNumber,
     required String sessionID,
-    required String sectionID,
     required String courseID,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/fetch_section_studentsN.php'),
-      body: {
-        'SessionID': sessionID,
-        'SectionID': sectionID,
-        'CourseID': courseID,
-      },
-    );
+    final url = Uri.parse('$baseUrl/remove_students_from_sectionN.php');
+    print('API Request to: $url');
+    print('Request Body: RollNumber: $rollNumber, SessionID: $sessionID, CourseID: $courseID');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List;
-      return data.map((student) => student as Map<String, dynamic>).toList();
-    } else {
-      throw Exception('Failed to fetch mapped students');
+    try {
+      final response = await http.post(url, body: {
+        'RollNumber': rollNumber,
+        'SessionID': sessionID,
+        'CourseID': courseID,
+      });
+
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'];
+      }
+      return false;
+    } catch (e) {
+      print('Error in removeStudentFromSection API: $e');
+      return false;
     }
   }
 
