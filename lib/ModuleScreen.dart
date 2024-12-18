@@ -77,10 +77,11 @@ class _ModuleScreenState extends State<ModuleScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CreateSectionScreen(
-            cohort: "Cohort Example", // Use the appropriate cohort
-            selectedCourses: [], // Pass selected courses as needed
-          ),
+          builder: (context) =>
+              CreateSectionScreen(
+                cohort: "Cohort Example", // Use the appropriate cohort
+                selectedCourses: [], // Pass selected courses as needed
+              ),
         ),
       );
     } else {
@@ -158,7 +159,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 }).toList(),
               ),
             ),
-
             // Logout option
             ListTile(
               title: const Text('Logout'),
@@ -190,12 +190,21 @@ class _ModuleScreenState extends State<ModuleScreen> {
                       duration: Duration(seconds: 2),
                     ),
                   );
-                } else if (module["title"] == "Mapping" && widget.role == "Admin") {
+                } else
+                if (module["title"] == "Mapping" && widget.role == "Admin") {
                   // Navigate to SelectCohortScreen for admin
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SelectCohortScreen(),
+                      builder: (context) => const SelectCohortScreen(source: 'Mapping',),
+                    ),
+                  );
+                } else if (module["title"] == "Attendance") {
+                  // Navigate to SelectCohortScreen for Attendance
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SelectCohortScreen(source: 'Attendance',),
                     ),
                   );
                 } else {
@@ -205,33 +214,22 @@ class _ModuleScreenState extends State<ModuleScreen> {
                   } else {
                     // Placeholder action for other modules
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Tapped on ${module["title"]}')),
+                      SnackBar(content: Text('Tapped on ${ module["title"]}')),
                     );
                   }
                 }
               },
               child: Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      module["icon"],
-                      size: 40,
-                      color: Colors.orange[700],
-                    ),
+                    Icon(module["icon"], size: 50, color: Colors.orange),
                     const SizedBox(height: 10),
                     Text(
                       module["title"],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange[700],
-                      ),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

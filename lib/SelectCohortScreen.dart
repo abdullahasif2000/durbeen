@@ -4,9 +4,11 @@ import 'package:data_table_2/data_table_2.dart';
 import 'api_service.dart';
 import 'CreateSectionScreen.dart';
 import 'dart:convert';
+import 'SelectSectionScreen.dart';
 
 class SelectCohortScreen extends StatefulWidget {
-  const SelectCohortScreen({Key? key}) : super(key: key);
+  final String source; // Parameter to determine the source module
+  const SelectCohortScreen({Key? key, required this.source}) : super(key: key);
 
   @override
   _SelectCohortScreenState createState() => _SelectCohortScreenState();
@@ -182,15 +184,26 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     await _saveSelectedCourseIDs(); // Save selected course IDs before navigation
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateSectionScreen(
-                          cohort: _selectedCohort!,
-                          selectedCourses: _selectedCourses, // Pass selected courses to the next screen
+                    if (widget.source == 'Mapping') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateSectionScreen(
+                            cohort: _selectedCohort!,
+                            selectedCourses: _selectedCourses, // Pass selected courses to the next screen
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } else if (widget.source == 'Attendance') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectSectionScreen(
+                          ),
+                        ),
+                      );
+
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange[700],
