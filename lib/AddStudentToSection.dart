@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
-import 'package:fluttertoast/fluttertoast.dart'; // Add this for toast messages
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
 
 class AddStudentToSectionScreen extends StatefulWidget {
   final String cohort;
@@ -17,7 +18,7 @@ class AddStudentToSectionScreen extends StatefulWidget {
 class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   List<Map<String, dynamic>> students = [];
   List<Map<String, dynamic>> addedStudents = [];
-  String? selectedRollNumber;
+  List<String> selectedRollNumbers = []; // List to hold selected roll numbers
   List<String> sectionIDs = [];
   List<String> courseIDs = [];
   String? sessionID;
@@ -131,7 +132,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
     }
   }
 
-  Future<void> _mapStudentToSections(String rollNumber) async {
+  Future<void> _mapStudentsToSections() async {
     if (sessionID == null || sectionIDs.isEmpty || courseIDs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Invalid SessionID, SectionIDs, or CourseIDs.')),
@@ -140,27 +141,29 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
     }
 
     try {
-      for (int i = 0; i < sectionIDs.length; i++) {
-        final sectionID = sectionIDs[i];
-        final courseID = courseIDs[i];
-        final success = await ApiService().addStudentToSection(
-          sessionID: sessionID!,
-          sectionID: sectionID,
-          courseID: courseID,
-          rollNumber: rollNumber,
-        );
+      for (String rollNumber in selectedRollNumbers) {
+        for (int i = 0; i < sectionIDs.length; i++) {
+          final sectionID = sectionIDs[i];
+          final courseID = courseIDs[i];
+          final success = await ApiService().addStudentToSection(
+            sessionID: sessionID!,
+            sectionID: sectionID,
+            courseID: courseID,
+            rollNumber: rollNumber,
+          );
 
-        if (success) {
-          print(
-              'Student added successfully to Section $sectionID for Course $courseID!');
-        } else {
-          print(
-              'Failed to add student to Section $sectionID for Course $courseID.');
+          if (success) {
+            print(
+                'Student $rollNumber added successfully to Section $sectionID for Course $courseID!');
+          } else {
+            print(
+                'Failed to add student $rollNumber to Section $sectionID for Course $courseID.');
+          }
         }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Student mapped to all sections successfully!')),
+        SnackBar(content: Text('Selected students mapped to all sections successfully!')),
       );
 
       // Enable the "View Mapped Students" button
@@ -171,9 +174,9 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       // Fetch updated mapped students
       await _fetchMappedStudents();
     } catch (e) {
-      print('Error mapping student: $e');
+      print('Error mapping students: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error mapping student to sections.')),
+        SnackBar(content: Text('Error mapping students to sections.')),
       );
     }
   }
@@ -220,39 +223,30 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DropdownButtonFormField<String>(
-                value: selectedRollNumber,
-                hint: Text('Select Student Roll Number'),
+              Text('Select Students to Map to Sections'),
+              SizedBox(height: 10),
+              // Multi-select students using MultiSelectDropdown
+              MultiSelectDialogField(
                 items: students.map((student) {
-                  return DropdownMenuItem<String>(
-                    value: student['RollNumber'],
-                    child: Text(
-                        '${student['RollNumber']} - ${student['Name']}'),
-                  );
+                  return MultiSelectItem(student['RollNumber'], '${student['RollNumber']} - ${student['Name']}');
                 }).toList(),
-                onChanged: (value) {
+                title: Text("Select Students"),
+                selectedColor: Colors.orange,
+                buttonText: Text("Select Students"),
+                onConfirm: (values) {
                   setState(() {
-                    selectedRollNumber = value;
+                    selectedRollNumbers = List<String>.from(values);
                   });
                 },
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: selectedRollNumber == null
+                onPressed: selectedRollNumbers.isEmpty
                     ? null
                     : () async {
-                  await _mapStudentToSections(selectedRollNumber!);
+                  await _mapStudentsToSections();
                 },
-                child: Text('Map Selected Student to All Sections'),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: isStudentMapped
-                    ? () async {
-                  await _fetchMappedStudents();
-                }
-                    : null,
-                child: Text('View Mapped Students'),
+                child: Text('Map Selected Students to All Sections'),
               ),
               SizedBox(height: 20),
               Text(

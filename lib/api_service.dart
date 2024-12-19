@@ -329,29 +329,36 @@ class ApiService {
     required String sessionID,
     required String courseID,
   }) async {
-    final url = Uri.parse('$baseUrl/remove_students_from_sectionN.php');
+    // Append query parameters directly to the URL
+    final url = Uri.parse('$baseUrl/remove_students_from_sectionN.php?RollNumber=$rollNumber&SessionID=$sessionID&CourseID=$courseID');
+
     print('API Request to: $url');
-    print('Request Body: RollNumber: $rollNumber, SessionID: $sessionID, CourseID: $courseID');
 
     try {
-      final response = await http.post(url, body: {
-        'RollNumber': rollNumber,
-        'SessionID': sessionID,
-        'CourseID': courseID,
-      });
+      final response = await http.get(url);  // Use GET instead of POST
 
       print('Response Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['success'];
+
+        // Check for 'status' key in response
+        if (data['status'] == 'success') {
+          return true;
+        } else {
+          print('API error: ${data['status']}');
+          return false;
+        }
+      } else {
+        print('Error: Status code ${response.statusCode}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('Error in removeStudentFromSection API: $e');
       return false;
     }
   }
+
 
 }

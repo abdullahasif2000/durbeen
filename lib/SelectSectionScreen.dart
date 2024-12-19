@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'dart:convert';
+import 'AttendanceScreen.dart';
 
 class SelectSectionScreen extends StatefulWidget {
   const SelectSectionScreen({Key? key}) : super(key: key);
@@ -21,34 +22,21 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
 
   Future<List<Map<String, dynamic>>> _fetchSections() async {
     final prefs = await SharedPreferences.getInstance();
-    final sessionId = prefs.getString('SessionID'); // Assuming SessionID is stored as a string
+    final sessionId = prefs.getString('SessionID');
     final courseIdsString = prefs.getString('CourseIDs');
-
-    // Log the retrieved SessionID and CourseIDs
-    print('Retrieved SessionID: $sessionId');
-    print('Retrieved CourseIDs: $courseIdsString');
 
     if (sessionId == null || courseIdsString == null) {
       throw Exception("SessionID or CourseIDs not found in SharedPreferences");
     }
 
-    // Convert the CourseIDs string back to a list
     List<dynamic> courseIds = List.from(jsonDecode(courseIdsString));
-    print('Parsed CourseIDs: $courseIds');
-
     List<Map<String, dynamic>> allSections = [];
 
-    // Fetch sections for each CourseID
     for (var courseId in courseIds) {
-      print('Fetching sections for CourseID: $courseId');
       final sections = await ApiService().fetchSections(
         sessionID: sessionId,
         courseID: courseId.toString(),
       );
-
-      // Log the fetched sections
-      print('Fetched sections for CourseID $courseId: $sections');
-
       allSections.addAll(sections);
     }
 
@@ -88,26 +76,47 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
               itemCount: sections.length,
               itemBuilder: (context, index) {
                 final section = sections[index];
-                // Log the section data
-                print('Section data at index $index: $section');
 
                 return Card(
                   elevation: 4,
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Section ID: ${section['id'] ?? 'N/A'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Section ID: ${section['id'] ?? 'N/A'}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Course ID: ${section['CourseID'] ?? 'N/A'}'),
+                            Text('Section Name: ${section['SectionName'] ?? 'N/A'}'),
+                            Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('Course ID: ${section['CourseID'] ?? 'N/A'}'),
-                        Text('Section Name: ${section['SectionName'] ?? 'N/A'}'),
-                        Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
+                        IconButton(
+                          icon: const Icon(Icons.calendar_month, color: Colors.orange, size: 30),
+                          onPressed: () async {
+                            // Save SectionID to SharedPreferences
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString('SelectedSectionID', section['id'].toString());
 
+                            // Print the saved SectionID to console
+                            print('Selected SectionID: ${section['id']}');
+
+                            // Navigate to AttendanceScreen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AttendanceScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
