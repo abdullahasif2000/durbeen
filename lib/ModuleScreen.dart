@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'SelectCohortScreen.dart';
 import 'api_service.dart';
 import 'LoginScreen.dart';
-import 'CreateSectionScreen.dart';  // Import CreateSectionScreen
+import 'CreateSectionScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'AttendanceOptionScreen.dart';
 
 class ModuleScreen extends StatefulWidget {
   final String role;
@@ -21,9 +22,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.role == "Admin") {
-      _fetchSessions(); // Fetch available sessions only if role is Admin
-    }
+    _fetchSessions(); // Fetch available sessions for all roles
     _loadSession(); // Load the session ID if already saved
   }
 
@@ -57,17 +56,16 @@ class _ModuleScreenState extends State<ModuleScreen> {
     // Save session to SharedPreferences with a consistent key
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('SessionID', sessionId ?? '');
-    debugPrint('Saved SessionID: $sessionId'); //
+    debugPrint('Saved SessionID: $sessionId');
 
     Navigator.pop(context); // Close the drawer after selection
   }
-
 
   // Retrieve session ID from SharedPreferences
   void _loadSession() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedSession = prefs.getString('sessionID');
+      selectedSession = prefs.getString('SessionID');
     });
   }
 
@@ -122,9 +120,8 @@ class _ModuleScreenState extends State<ModuleScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
-      // Drawer widget to show session options for admin and logout option
-      drawer: widget.role == "Admin"
-          ? Drawer(
+      // Drawer widget to show session options for all roles
+      drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -133,7 +130,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 color: Colors.orange,
               ),
               child: Text(
-                'Admin Options',
+                'Options',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -166,8 +163,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
             ),
           ],
         ),
-      )
-          : null,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
@@ -190,31 +186,30 @@ class _ModuleScreenState extends State<ModuleScreen> {
                       duration: Duration(seconds: 2),
                     ),
                   );
-                } else
-                if (module["title"] == "Mapping" && widget.role == "Admin") {
+                } else if (module["title"] == "Mapping" && widget.role == "Admin") {
                   // Navigate to SelectCohortScreen for admin
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SelectCohortScreen(source: 'Mapping',),
+                      builder: (context) => const SelectCohortScreen(source: 'Mapping'),
                     ),
                   );
                 } else if (module["title"] == "Attendance") {
-                  // Navigate to SelectCohortScreen for Attendance
+                  // Navigate to AttendanceOptionScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SelectCohortScreen(source: 'Attendance',),
+                      builder: (context) => AttendanceOptionScreen(role: widget.role),
                     ),
                   );
                 } else {
-                  // Navigate to CreateSectionScreen for other modules
+                  // Navigate to CreateSectionScreen for Courses
                   if (module["title"] == "Courses") {
                     _goToCreateSection();
                   } else {
                     // Placeholder action for other modules
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Tapped on ${ module["title"]}')),
+                      SnackBar(content: Text('Tapped on ${module["title"]}')),
                     );
                   }
                 }

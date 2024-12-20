@@ -359,6 +359,51 @@ class ApiService {
       return false;
     }
   }
+  // Method to mark attendance
+  Future<bool> markAttendance({
+    required String rollNumber,
+    required String courseID,
+    required String sessionID,
+    required String sectionID,
+    required String date,
+    required String attendanceStatus,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/mark_new_attendanceN.php');
 
+      print('Marking attendance with the following parameters:');
+      print('RollNumber: $rollNumber, CourseID: $courseID, SessionID: $sessionID, '
+          'SectionID: $sectionID, Date: $date, AttendanceStatus: $attendanceStatus');
 
+      final response = await http.get(
+        url.replace(queryParameters: {
+          'RollNumber': rollNumber,
+          'CourseID': courseID,
+          'SessionID': sessionID,
+          'SectionID': sectionID,
+          'Date': date,
+          'AttendanceStatus': attendanceStatus,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          print('Attendance successfully marked for $rollNumber');
+          return true;
+        } else {
+          print('Failed to mark attendance: ${result['message']}');
+          throw Exception('Failed to mark attendance: ${result['message']}');
+        }
+      } else {
+        throw Exception('Failed to connect to API');
+      }
+    } catch (e) {
+      print('Error marking attendance: $e');
+      throw Exception('Error marking attendance: $e');
+    }
+  }
 }
