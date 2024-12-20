@@ -84,6 +84,35 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     }
   }
 
+  // Show confirmation dialog before deleting a section
+  void _confirmDelete(String sectionID) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Delete'),
+          content: const Text(
+            'Are you sure you want to delete this section?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Cancel
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                deleteSection(sectionID); // Delete the section
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +166,7 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => deleteSection(section['id']),
+                      onPressed: () => _confirmDelete(section['id']),
                     ),
                   ),
                 );

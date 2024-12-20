@@ -181,6 +181,38 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
     }
   }
 
+  // Confirmation alert for removing students
+  Future<void> _confirmAndRemoveStudent(String sessionID, String courseID, String rollNumber) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Removal'),
+          content: Text('Are you sure you want to remove the student with Roll Number $rollNumber?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                await _removeStudentFromSection(sessionID, courseID, rollNumber);
+              },
+              child: Text('Remove', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Set the button color
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Remove student from section
   Future<void> _removeStudentFromSection(String sessionID, String courseID, String rollNumber) async {
     try {
       final success = await ApiService().removeStudentFromSection(
@@ -255,7 +287,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
               ),
               SizedBox(height: 10),
               SizedBox(
-                height: 300, // You can adjust the height of the DataTable
+                height: 300, //  height of the DataTable
                 child: SingleChildScrollView(
                   child: DataTable(
                     columns: [
@@ -264,7 +296,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
                       DataColumn(label: Text('Session ID')),
                       DataColumn(label: Text('Section ID')),
                       DataColumn(label: Text('Course ID')),
-                      DataColumn(label: Text('Actions')), // New column for actions
+                      DataColumn(label: Text('Actions')),
                     ],
                     rows: addedStudents.map((student) {
                       return DataRow(cells: [
@@ -277,7 +309,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
                           IconButton(
                             icon: Icon(Icons.delete, color: Colors.red),
                             onPressed: () async {
-                              await _removeStudentFromSection(
+                              await _confirmAndRemoveStudent(
                                 student['SessionID'],
                                 student['CourseID'],
                                 student['RollNumber'],
