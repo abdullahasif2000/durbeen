@@ -406,4 +406,61 @@ class ApiService {
       throw Exception('Error marking attendance: $e');
     }
   }
+// Method to check if attendance is already marked
+  Future<bool> checkAttendanceMarked({
+    required String sessionID,
+    required String courseID,
+    required String sectionID,
+    required String date,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/fetch_attendance_admin.php');
+
+      print('Checking attendance with the following parameters:');
+      print('SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
+
+      final response = await http.get(
+        url.replace(queryParameters: {
+          'SessionID': sessionID,
+          'CourseID': courseID,
+          'SectionID': sectionID,
+          'Date': date,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // If the response is "NA", no attendance is marked
+        if (response.body == '"NA"') {
+          print('No attendance records found for the date: $date');
+          return false; // No attendance marked
+        }
+
+        // Decode the response body properly
+        final decodedResponse = jsonDecode(response.body);
+
+        // Check if the decoded response is a list
+        if (decodedResponse is List) {
+          if (decodedResponse.isEmpty) {
+            print('No attendance records found for the date: $date');
+            return false; // No attendance marked
+          } else {
+            print('Attendance already marked for the date: $date');
+            return true; // Attendance has been marked
+          }
+        } else {
+          // If the decoded response is not a list, throw an error
+          throw Exception('Invalid response format, expected a list');
+        }
+      } else {
+        throw Exception('Failed to connect to API');
+      }
+    } catch (e) {
+      print('Error checking attendance: $e');
+      throw Exception('Error checking attendance: $e');
+    }
+  }
+
 }
