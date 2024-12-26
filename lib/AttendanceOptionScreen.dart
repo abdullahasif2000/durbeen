@@ -37,7 +37,7 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SelectCohortScreen(source: 'Attendance'),
+                        builder: (context) => SelectCohortScreen(source: 'Attendance', option: 'Mark'),
                       ),
                     );
                   },
@@ -52,7 +52,7 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SelectCohortScreen(source: 'Attendance'),
+                        builder: (context) => SelectCohortScreen(source: 'Attendance', option: 'Edit'),
                       ),
                     );
                   },
@@ -66,7 +66,7 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SelectCohortScreen(source: 'Attendance'),
+                      builder: (context) => SelectCohortScreen(source: 'Attendance', option: 'View'),
                     ),
                   );
                 },

@@ -3,9 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'dart:convert';
 import 'AttendanceScreen.dart';
+import 'ViewAttendanceScreen.dart';
+import 'EditAttendanceScreen.dart';
 
 class SelectSectionScreen extends StatefulWidget {
-  const SelectSectionScreen({Key? key}) : super(key: key);
+  final String option; // Make this non-nullable
+
+  const SelectSectionScreen({Key? key, required this.option}) : super(key: key);
 
   @override
   _SelectSectionScreenState createState() => _SelectSectionScreenState();
@@ -108,13 +112,29 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
                             // Print the saved SectionID to console
                             print('Selected SectionID: ${section['id']}');
 
-                            // Navigate to AttendanceScreen
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AttendanceScreen(),
-                              ),
-                            );
+                            // Navigate to the appropriate screen based on the option
+                            if (widget.option == 'Mark') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AttendanceScreen(),
+                                ),
+                              );
+                            } else if (widget.option == 'View') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ViewAttendanceScreen(),
+                                ),
+                              );
+                            } else if (widget.option == 'Edit') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const EditAttendanceScreen(),
+                                ),
+                              );
+                            }
                           },
                         ),
                       ],

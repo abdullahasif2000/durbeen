@@ -1,3 +1,4 @@
+                                            //mark attendance screen
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     super.initState();
     _studentsFuture = _loadAndFetchStudents();
     _checkAttendanceMarked();
-    _selectedDate = DateTime.now();// Default to today's date
+    _selectedDate = DateTime.now(); // Default to today's date
   }
 
   Future<List<Map<String, dynamic>>> _loadAndFetchStudents() async {
@@ -81,16 +82,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         // Notify user (Optional)
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Attendance Already Marked"),
-            content: const Text("Attendance has already been marked for this date."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text("OK"),
+          builder: (context) =>
+              AlertDialog(
+                title: const Text("Attendance Already Marked"),
+                content: const Text(
+                    "Attendance has already been marked for this date."),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("OK"),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       }
     } catch (e) {
@@ -99,17 +102,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
 
-
   void _updateAttendance(String rollNumber, String status) {
     if (_isAttendanceMarked) return; // Prevent updates if attendance is marked
 
     // Check if status is valid
     if (!['present', 'absent', 'late'].contains(status)) return;
 
-    final index = attendanceData.indexWhere((entry) => entry['RollNumber'] == rollNumber);
+    final index = attendanceData.indexWhere((entry) =>
+    entry['RollNumber'] == rollNumber);
 
     if (index == -1) {
-      attendanceData.add({'RollNumber': rollNumber, 'AttendanceStatus': status});
+      attendanceData.add(
+          {'RollNumber': rollNumber, 'AttendanceStatus': status});
     } else {
       attendanceData[index]['AttendanceStatus'] = status;
     }
@@ -118,55 +122,62 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _submitAttendance() async {
-    if (_selectedDate == null) {
-      print('Error: Please select a date.');
-      return;
-    }
-
-    // Check if attendance is already marked
-    if (_isAttendanceMarked) {
-      print('Error: Attendance has already been marked for this date.');
-      return; // Exit the function if already marked
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final sessionID = prefs.getString('SessionID');
-    final courseID = prefs.getString('CourseIDs') ?? '[]';
-    final sectionID = prefs.getString('SelectedSectionID');
-    final parsedCourseIDs = jsonDecode(courseID) as List;
-
-    if (sessionID == null ||
-        parsedCourseIDs.isEmpty ||
-        sectionID == null ||
-        attendanceData.isEmpty) {
-      print('Error: Missing required data for submission.');
-      return;
-    }
-
-    for (final entry in attendanceData) {
-      final success = await ApiService().markAttendance(
-        rollNumber: entry['RollNumber'],
-        courseID: parsedCourseIDs.first.toString(),
-        sessionID: sessionID,
-        sectionID: sectionID,
-        date: _selectedDate != null ? DateFormat('yyyy-MM-dd').format(_selectedDate!) : '',
-        attendanceStatus: entry['AttendanceStatus'],
-      );
-
-      if (success) {
-        print('Attendance submitted for Roll Number: ${entry['RollNumber']}');
-      } else {
-        print('Failed to submit attendance for Roll Number: ${entry['RollNumber']}');
+    try {
+      if (_selectedDate == null) {
+        print('Error: Please select a date.');
+        return;
       }
+
+      if (_isAttendanceMarked) {
+        print('Error: Attendance has already been marked for this date.');
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final sessionID = prefs.getString('SessionID');
+      final courseID = prefs.getString('CourseIDs') ?? '[]';
+      final sectionID = prefs.getString('SelectedSectionID');
+      final parsedCourseIDs = jsonDecode(courseID) as List;
+
+      if (sessionID == null || parsedCourseIDs.isEmpty || sectionID == null || attendanceData.isEmpty) {
+        print('Error: Missing required data for submission.');
+        return;
+      }
+
+      setState(() {
+        _isAttendanceMarked = true;
+      });
+
+      bool allSuccess = true;
+      for (final entry in attendanceData) {
+        final success = await ApiService().markAttendance(
+          rollNumber: entry['RollNumber'],
+          courseID: parsedCourseIDs.first.toString(),
+          sessionID: sessionID,
+          sectionID: sectionID,
+          date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
+          attendanceStatus: entry['AttendanceStatus'],
+        );
+
+        if (!success) {
+          allSuccess = false;
+        }
+      }
+
+      if (allSuccess) {
+        setState(() {
+          // Retain attendanceData to show statuses but keep interaction disabled
+          _isAttendanceMarked = true;
+        });
+        print('All attendance records successfully submitted.');
+      } else {
+        print('Some attendance records failed to submit.');
+      }
+    } catch (e) {
+      print('Error while submitting attendance: $e');
     }
-
-    setState(() {
-      attendanceData.clear();
-      _isAttendanceMarked = true; // Mark attendance as submitted
-    });
-
-    print('All attendance records submitted.');
   }
+
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -220,7 +231,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 child: Row(
                   children: [
                     Text(
-                      'Selected Date: ${_selectedDate?.toString().split(' ')[0] ?? 'None'}',
+                      'Selected Date: ${_selectedDate?.toString().split(
+                          ' ')[0] ?? 'None'}',
                       style: const TextStyle(fontSize: 16),
                     ),
                     const Spacer(),
@@ -249,14 +261,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       final rowColor = _getRowColor(rollNumber);
 
                       return DataRow(
-                        color: MaterialStateProperty.resolveWith((states) => rowColor),
+                        color: MaterialStateProperty.resolveWith((
+                            states) => rowColor),
                         cells: [
                           DataCell(Text(rollNumber)),
                           DataCell(Text(student['Name'] ?? 'N/A')),
                           DataCell(
                             Checkbox(
                               value: _isMarked(rollNumber, 'present'),
-                              onChanged: _isAttendanceMarked ? null : (value) {
+                              onChanged: _isAttendanceMarked
+                                  ? null // Disable if attendance is marked
+                                  : (value) {
                                 if (value == true) {
                                   _updateAttendance(rollNumber, 'present');
                                 }
@@ -266,7 +281,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           DataCell(
                             Checkbox(
                               value: _isMarked(rollNumber, 'absent'),
-                              onChanged: _isAttendanceMarked ? null : (value) {
+                              onChanged: _isAttendanceMarked
+                                  ? null // Disable if attendance is marked
+                                  : (value) {
                                 if (value == true) {
                                   _updateAttendance(rollNumber, 'absent');
                                 }
@@ -276,7 +293,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           DataCell(
                             Checkbox(
                               value: _isMarked(rollNumber, 'late'),
-                              onChanged: _isAttendanceMarked ? null : (value) {
+                              onChanged: _isAttendanceMarked
+                                  ? null // Disable if attendance is marked
+                                  : (value) {
                                 if (value == true) {
                                   _updateAttendance(rollNumber, 'late');
                                 }
@@ -293,7 +312,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 onPressed: _isAttendanceMarked ? null : _submitAttendance,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[700],
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 30, vertical: 15),
                 ),
                 child: const Text(
                   'Submit Attendance',
@@ -309,7 +329,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Color _getRowColor(String rollNumber) {
-    final index = attendanceData.indexWhere((entry) => entry['RollNumber'] == rollNumber);
+    final index = attendanceData.indexWhere((entry) =>
+    entry['RollNumber'] == rollNumber);
 
     if (index != -1) {
       final status = attendanceData[index]['AttendanceStatus'];
@@ -328,7 +349,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   bool _isMarked(String rollNumber, String status) {
-    final index = attendanceData.indexWhere((entry) => entry['RollNumber'] == rollNumber);
+    final index = attendanceData.indexWhere((entry) =>
+    entry['RollNumber'] == rollNumber);
     if (index != -1) {
       return attendanceData[index]['AttendanceStatus'] == status;
     }

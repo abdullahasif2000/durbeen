@@ -8,12 +8,13 @@ import 'SelectSectionScreen.dart';
 
 class SelectCohortScreen extends StatefulWidget {
   final String source; // Parameter to determine the source module
-  const SelectCohortScreen({Key? key, required this.source}) : super(key: key);
+  final String? option; // Optional parameter to determine the action (Mark, Edit, View)
+
+  const SelectCohortScreen({Key? key, required this.source, this.option}) : super(key: key);
 
   @override
   _SelectCohortScreenState createState() => _SelectCohortScreenState();
 }
-
 class _SelectCohortScreenState extends State<SelectCohortScreen> {
   late Future<List<String>> _cohortsFuture;
   late Future<List<Map<String, dynamic>>> _coursesFuture;
@@ -195,14 +196,15 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                         ),
                       );
                     } else if (widget.source == 'Attendance') {
+                      // Navigate to SelectSectionScreen and pass the option
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => SelectSectionScreen(
+                            option: widget.option ?? '', // Pass the option to SelectSectionScreen
                           ),
                         ),
                       );
-
                     }
                   },
                   style: ElevatedButton.styleFrom(
