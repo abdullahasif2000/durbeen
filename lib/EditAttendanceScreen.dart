@@ -15,6 +15,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
   String? _sessionID;
   String? _courseID;
   String? _sectionID;
+  String? _userRole; // Store user role
   List<Map<String, dynamic>> _attendanceRecords = [];
   bool _isLoading = true;
   String _error = '';
@@ -29,6 +30,10 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _sessionID = prefs.getString('SessionID');
+      _userRole = prefs.getString('User Role'); // Load user role
+
+      // Debug statement to print the user role in the console
+      print('Loaded User Role: $_userRole');
 
       String? courseIDsString = prefs.getString('CourseIDs');
       if (courseIDsString != null) {
@@ -51,18 +56,32 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       return;
     }
 
+    DateTime selectedDate = DateTime.parse(_dateController.text);
+
+    // Validate date for faculty role
+    if (_userRole == 'Faculty') {
+      DateTime now = DateTime.now();
+      DateTime facultyLimitDate = now.subtract(const Duration(hours: 48));
+
+      if (selectedDate.isBefore(facultyLimitDate)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Faculty can only edit attendance for the last 48 hours')),
+        );
+        return;
+      }
+    }
+
     setState(() {
       _isLoading = true;
       _error = '';
     });
 
     try {
-      final date = _dateController.text;
       final records = await ApiService().fetchAttendanceRecords(
         sessionID: _sessionID!,
         courseID: _courseID!,
         sectionID: _sectionID!,
-        date: date,
+        date: _dateController.text,
       );
 
       setState(() {
@@ -83,13 +102,6 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
 
   Future<void> _updateAttendanceStatus(String rollNumber, String newStatus) async {
     try {
-      print('DEBUG: Attempting to update attendance...');
-      print('DEBUG: RollNumber: $rollNumber, NewStatus: $newStatus');
-      print('DEBUG: SessionID: $_sessionID');
-      print('DEBUG: CourseID: $_courseID');
-      print('DEBUG: SectionID: $_sectionID');
-      print('DEBUG: Date: ${_dateController.text}');
-
       await ApiService().updateAttendanceStatus(
         sessionID: _sessionID!,
         courseID: _courseID!,
@@ -99,14 +111,12 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         attendanceStatus: newStatus,
       );
 
-      print('DEBUG: Attendance updated successfully.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Attendance updated successfully')),
       );
 
       _fetchAttendanceRecords(); // Refresh the attendance records
     } catch (e) {
-      print('ERROR: Failed to update attendance: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error updating attendance: $e')),
       );
@@ -118,7 +128,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Attendance'),
+          title : const Text('Edit Attendance'),
           backgroundColor: Colors.orange[700],
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -142,12 +152,23 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
               ),
               keyboardType: TextInputType.datetime,
               onTap: () async {
+                DateTime now = DateTime.now();
+                DateTime firstDate;
+
+
+                if (_userRole == 'Faculty') {
+                  firstDate = now.subtract(const Duration(hours: 48));
+                } else {
+                  firstDate = DateTime(2000);
+                }
+
                 final DateTime? picked = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2101),
+                  initialDate: now,
+                  firstDate: firstDate,
+                  lastDate: now,
                 );
+
                 if (picked != null) {
                   setState(() {
                     _dateController.text = "${picked.toLocal()}".split(' ')[0];

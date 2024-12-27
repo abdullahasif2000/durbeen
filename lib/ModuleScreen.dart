@@ -16,17 +16,17 @@ class ModuleScreen extends StatefulWidget {
 }
 
 class _ModuleScreenState extends State<ModuleScreen> {
-  String? selectedSession; // Variable to store the selected session
-  List<Map<String, dynamic>> sessions = []; // To hold the session data
+  String? selectedSession;
+  List<Map<String, dynamic>> sessions = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchSessions(); // Fetch available sessions for all roles
-    _loadSession(); // Load the session ID if already saved
+    _fetchSessions();
+    _loadSession();
   }
 
-  // Fetch the available sessions from the API
+
   Future<void> _fetchSessions() async {
     try {
       final List<dynamic> data = await ApiService().fetchSessions();
@@ -47,21 +47,21 @@ class _ModuleScreenState extends State<ModuleScreen> {
     }
   }
 
-  // Handle session selection from the dropdown
+
   void _selectSession(String? sessionId) async {
     setState(() {
       selectedSession = sessionId;
     });
 
-    // Save session to SharedPreferences with a consistent key
+
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('SessionID', sessionId ?? '');
     debugPrint('Saved SessionID: $sessionId');
 
-    Navigator.pop(context); // Close the drawer after selection
+    Navigator.pop(context);
   }
 
-  // Retrieve session ID from SharedPreferences
+
   void _loadSession() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -69,7 +69,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
     });
   }
 
-  // Navigate to CreateSectionScreen and pass the session ID
+
   void _goToCreateSection() {
     if (selectedSession != null) {
       Navigator.push(
@@ -120,7 +120,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
         ),
       ),
-      // Drawer widget to show session options for all roles
+
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -138,7 +138,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 ),
               ),
             ),
-            // Session selector dropdown in the drawer
+
             ListTile(
               title: const Text('Select Session'),
               trailing: DropdownButton<String>(
@@ -179,7 +179,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
             return GestureDetector(
               onTap: () {
                 if (module["title"] == "Mapping" && widget.role != "Admin") {
-                  // Show access denied for non-admins tapping on Mapping
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Access Denied: Admins only'),
@@ -187,7 +187,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     ),
                   );
                 } else if (module["title"] == "Mapping" && widget.role == "Admin") {
-                  // Navigate to SelectCohortScreen for admin
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(

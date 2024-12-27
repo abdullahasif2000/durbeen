@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ModuleScreen.dart';
 import 'api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,14 +14,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String? selectedRole = 'Admin'; // Default role
-  bool _obscurePassword = true; // To control password visibility
+  bool _obscurePassword = true;
 
   void handleLogin() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
     String role = selectedRole!;
 
-    // Debugging: print login credentials
+
     print("Login attempt: Email: $email, Password: $password, Role: $role");
 
     if (email.isEmpty || password.isEmpty || role.isEmpty) {
@@ -31,10 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      // Call API for login
+
       final response = await ApiService().login(email, password, role);
 
       if (response != null) {
+        // Store the role in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('User Role', role); // Store the role
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ModuleScreen(role:role)),
@@ -46,17 +50,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (e is FormatException) {
-        // Handle JSON parsing errors
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invalid response format: ${e.toString()}')),
         );
       } else if (e is Exception) {
-        // Handle other errors such as network issues
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
       } else {
-        // Handle any unforeseen errors
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Unexpected error occurred')),
         );
