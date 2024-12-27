@@ -462,5 +462,89 @@ class ApiService {
       throw Exception('Error checking attendance: $e');
     }
   }
+  /// fetch admin Attendance
+  Future<List<Map<String, dynamic>>> fetchAttendanceRecords({
+    required String sessionID,
+    required String courseID,
+    required String sectionID,
+    required String date,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/fetch_attendance_admin.php');
 
+      print('Checking attendance with the following parameters:');
+      print('SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
+
+      final response = await http.get(
+        url.replace(queryParameters: {
+          'SessionID': sessionID,
+          'CourseID': courseID,
+          'SectionID': sectionID,
+          'Date': date,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        if (response.body == '"NA"') {
+          print('No attendance records found for the date: $date');
+          return []; // Return an empty list
+        }
+
+        final decodedResponse = jsonDecode(response.body);
+
+        if (decodedResponse is List) {
+          return List<Map<String, dynamic>>.from(decodedResponse);
+        } else {
+          throw Exception('Invalid response format, expected a list');
+        }
+      } else {
+        throw Exception('Failed to connect to API');
+      }
+    } catch (e) {
+      print('Error fetching attendance: $e');
+      throw Exception('Error fetching attendance: $e');
+    }
+  }
+  /// Update Attendance Records
+  Future<void> updateAttendanceStatus({
+    required String sessionID,
+    required String courseID,
+    required String sectionID,
+    required String date,
+    required String rollNumber,
+    required String attendanceStatus,
+  }) async {
+    final Uri uri = Uri.parse('$baseUrl/update_attendanceN.php').replace(queryParameters: {
+      'SessionID': sessionID,
+      'CourseID': courseID,
+      'SectionID': sectionID,
+      'Date': date,
+      'RollNumber': rollNumber,
+      'AttendanceStatus': attendanceStatus,
+    });
+
+    try {
+      final response = await http.get(uri);
+      print('DEBUG: API Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('DEBUG: Parsed Response: $data');
+
+        if (data['status'] == 'success') {
+          print('DEBUG: Attendance updated successfully.');
+        } else {
+          throw Exception('Failed to update attendance: ${data['status']}');
+        }
+      } else {
+        throw Exception('Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('ERROR: $e');
+      throw Exception('Failed to update attendance: $e');
+    }
+  }
 }

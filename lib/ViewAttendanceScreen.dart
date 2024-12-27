@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // Import for JSON encoding/decoding
+import 'dart:convert';
 
 class ViewAttendanceScreen extends StatefulWidget {
   const ViewAttendanceScreen({Key? key}) : super(key: key);
@@ -15,8 +15,9 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
   String? _sessionID;
   String? _courseID;
   String? _sectionID;
-  bool? _attendanceMarked;
-  bool _isLoading = true;  // To show loading indicator until preferences are loaded.
+  List<Map<String, dynamic>> _attendanceRecords = [];
+  bool _isLoading = true;
+  String _error = '';
 
   @override
   void initState() {
@@ -39,7 +40,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       }
 
       _sectionID = prefs.getString('SelectedSectionID');
-      _isLoading = false;  // Preferences are loaded, hide the loading indicator.
+      _isLoading = false; // Preferences are loaded, hide the loading indicator.
     });
 
     // Debugging output
@@ -48,7 +49,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     print('SectionID: $_sectionID');
   }
 
-  Future<void> _checkAttendance() async {
+  Future<void> _fetchAttendanceRecords() async {
     if (_sessionID == null || _courseID == null || _sectionID == null || _dateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
@@ -56,9 +57,14 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
     try {
       final date = _dateController.text;
-      final isMarked = await ApiService().checkAttendanceMarked(
+      final records = await ApiService().fetchAttendanceRecords(
         sessionID: _sessionID!,
         courseID: _courseID!,
         sectionID: _sectionID!,
@@ -66,9 +72,15 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       );
 
       setState(() {
-        _attendanceMarked = isMarked;
+        _attendanceRecords = records;
+        _isLoading = false;
       });
     } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -82,7 +94,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != DateTime.now()) {
+    if (picked != null) {
       setState(() {
         _dateController.text = "${picked.toLocal()}".split(' ')[0]; // Format as YYYY-MM-DD
       });
@@ -104,7 +116,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
-        body: const Center(child: CircularProgressIndicator()),  // Show loading indicator.
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -131,32 +143,43 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.datetime,
-              onTap: () => _selectDate(context), // Open date picker on tap
-              readOnly: true, // Make the text field read-only
+              onTap: () => _selectDate(context),
+              readOnly: true,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _checkAttendance,
+              onPressed: _fetchAttendanceRecords,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[700],
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               ),
-              child: const Text('Check Attendance'),
+              child: const Text('Fetch Attendance'),
             ),
             const SizedBox(height: 20),
-            if (_attendanceMarked != null)
-              DataTable(
-                columns: const [
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('Attendance Status')),
-                ],
-                rows: [
-                  DataRow(cells: [
-                    DataCell(Text(_dateController.text)),
-                    DataCell(Text(_attendanceMarked! ? 'Marked' : 'Not Marked')),
-                  ]),
-                ],
+            if (_error.isNotEmpty)
+              Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+            if (_attendanceRecords.isNotEmpty)
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Roll Number')),
+                      DataColumn(label: Text('Date')),
+                      DataColumn(label: Text('Attendance Status')),
+                    ],
+                    rows: _attendanceRecords.map((record) {
+                      return DataRow(cells: [
+                        DataCell(Text(record['RollNumber'] ?? '')),
+                        DataCell(Text(record['Date'] ?? '')),
+                        DataCell(Text(record['AttendanceStatus'] ?? '')),
+                      ]);
+                    }).toList(),
+                  ),
+                ),
               ),
+            if (_attendanceRecords.isEmpty && _error.isEmpty)
+              const Center(child: Text('No attendance records found.')),
           ],
         ),
       ),
