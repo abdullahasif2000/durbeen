@@ -166,13 +166,35 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                     columns: const [
                       DataColumn(label: Text('Roll Number')),
                       DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Attendance Status')),
+                      DataColumn(label: Text('Present')),
+                      DataColumn(label: Text('Absent')),
+                      DataColumn(label: Text('Late')),
                     ],
                     rows: _attendanceRecords.map((record) {
+                      final rollNumber = record['RollNumber'] ?? '';
+                      final attendanceStatus = record['AttendanceStatus'] ?? '';
+
                       return DataRow(cells: [
-                        DataCell(Text(record['RollNumber'] ?? '')),
+                        DataCell(Text(rollNumber)),
                         DataCell(Text(record['Date'] ?? '')),
-                        DataCell(Text(record['AttendanceStatus'] ?? '')),
+                        DataCell(
+                          Checkbox(
+                            value: attendanceStatus == 'present',
+                            onChanged: null, // Disable interaction
+                          ),
+                        ),
+                        DataCell(
+                          Checkbox(
+                            value: attendanceStatus == 'absent',
+                            onChanged: null, // Disable interaction
+                          ),
+                        ),
+                        DataCell(
+                          Checkbox(
+                            value: attendanceStatus == 'late',
+                            onChanged: null, // Disable interaction
+                          ),
+                        ),
                       ]);
                     }).toList(),
                   ),

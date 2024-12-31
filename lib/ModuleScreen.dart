@@ -205,7 +205,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 } else {
                   // Navigate to CreateSectionScreen for Courses
                   if (module["title"] == "Courses") {
-                    _goToCreateSection();
+                    // _goToCreateSection();
                   } else {
                     // Placeholder action for other modules
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -224,7 +224,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     Text(
                       module["title"],
                       style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

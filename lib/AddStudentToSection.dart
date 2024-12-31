@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
+import 'package:data_table_2/data_table_2.dart';
 
 class AddStudentToSectionScreen extends StatefulWidget {
   final String cohort;
@@ -163,7 +164,8 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Selected students mapped to all sections successfully!')),
+        SnackBar(content: Text(
+            'Selected students mapped to all sections successfully!')),
       );
 
       // Enable the "View Mapped Students" button
@@ -182,13 +184,15 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   }
 
   // Confirmation alert for removing students
-  Future<void> _confirmAndRemoveStudent(String sessionID, String courseID, String rollNumber) async {
+  Future<void> _confirmAndRemoveStudent(String sessionID, String courseID,
+      String rollNumber) async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Confirm Removal'),
-          content: Text('Are you sure you want to remove the student with Roll Number $rollNumber?'),
+          content: Text(
+              'Are you sure you want to remove the student with Roll Number $rollNumber?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -199,7 +203,8 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the dialog
-                await _removeStudentFromSection(sessionID, courseID, rollNumber);
+                await _removeStudentFromSection(
+                    sessionID, courseID, rollNumber);
               },
               child: Text('Remove', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
@@ -213,7 +218,8 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   }
 
   // Remove student from section
-  Future<void> _removeStudentFromSection(String sessionID, String courseID, String rollNumber) async {
+  Future<void> _removeStudentFromSection(String sessionID, String courseID,
+      String rollNumber) async {
     try {
       final success = await ApiService().removeStudentFromSection(
         sessionID: sessionID,
@@ -260,7 +266,8 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
               // Multi-select students using MultiSelectDropdown
               MultiSelectDialogField(
                 items: students.map((student) {
-                  return MultiSelectItem(student['RollNumber'], '${student['RollNumber']} - ${student['Name']}');
+                  return MultiSelectItem(student['RollNumber'],
+                      '${student['RollNumber']} - ${student['Name']}');
                 }).toList(),
                 title: Text("Select Students"),
                 selectedColor: Colors.orange,
@@ -270,6 +277,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
                     selectedRollNumbers = List<String>.from(values);
                   });
                 },
+                searchable: true,
               ),
               SizedBox(height: 20),
               ElevatedButton(
@@ -286,40 +294,44 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              SizedBox(
-                height: 300, //  height of the DataTable
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    columns: [
-                      DataColumn(label: Text('Roll Number')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Session ID')),
-                      DataColumn(label: Text('Section ID')),
-                      DataColumn(label: Text('Course ID')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: addedStudents.map((student) {
-                      return DataRow(cells: [
-                        DataCell(Text(student['RollNumber'])),
-                        DataCell(Text(student['Name'])),
-                        DataCell(Text(student['SessionID'])),
-                        DataCell(Text(student['SectionID'])),
-                        DataCell(Text(student['CourseID'])),
-                        DataCell(
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () async {
-                              await _confirmAndRemoveStudent(
-                                student['SessionID'],
-                                student['CourseID'],
-                                student['RollNumber'],
-                              );
-                            },
-                          ),
+              Container(
+                height: 300, // Fixed height for the DataTable2 widget
+                child: DataTable2(
+                  columnSpacing: 12,
+                  horizontalMargin: 12,
+                  minWidth: 600,
+                  columns: [
+                    DataColumn2(
+                        label: Text('Roll Number'), size: ColumnSize.M),
+                    DataColumn2(label: Text('Name'), size: ColumnSize.L),
+                    DataColumn2(
+                        label: Text('Session ID'), size: ColumnSize.M),
+                    DataColumn2(
+                        label: Text('Section ID'), size: ColumnSize.M),
+                    DataColumn2(label: Text('Course ID'), size: ColumnSize.M),
+                    DataColumn2(label: Text('Actions'), size: ColumnSize.S),
+                  ],
+                  rows: addedStudents.map((student) {
+                    return DataRow2(cells: [
+                      DataCell(Text(student['RollNumber'])),
+                      DataCell(Text(student['Name'])),
+                      DataCell(Text(student['SessionID'])),
+                      DataCell(Text(student['SectionID'])),
+                      DataCell(Text(student['CourseID'])),
+                      DataCell(
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await _confirmAndRemoveStudent(
+                              student['SessionID'],
+                              student['CourseID'],
+                              student['RollNumber'],
+                            );
+                          },
                         ),
-                      ]);
-                    }).toList(),
-                  ),
+                      ),
+                    ]);
+                  }).toList(),
                 ),
               ),
             ],

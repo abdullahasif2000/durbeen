@@ -162,6 +162,8 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
           isSectionCreated = true;
         });
 
+        FocusScope.of(context).unfocus();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Section(s) "$sectionName" created successfully.')),
         );

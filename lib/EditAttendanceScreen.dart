@@ -30,7 +30,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _sessionID = prefs.getString('SessionID');
-      _userRole = prefs.getString('User Role'); // Load user role
+      _userRole = prefs.getString('User  Role'); // Load user role
 
       // Debug statement to print the user role in the console
       print('Loaded User Role: $_userRole');
@@ -128,7 +128,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title : const Text('Edit Attendance'),
+          title: const Text('Edit Attendance'),
           backgroundColor: Colors.orange[700],
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -154,7 +154,6 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
               onTap: () async {
                 DateTime now = DateTime.now();
                 DateTime firstDate;
-
 
                 if (_userRole == 'Faculty') {
                   firstDate = now.subtract(const Duration(hours: 48));
@@ -196,26 +195,47 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                     columns: const [
                       DataColumn(label: Text('Roll Number')),
                       DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Attendance Status')),
-                      DataColumn(label: Text('Actions')),
+                      DataColumn(label: Text('Present')),
+                      DataColumn(label: Text('Absent')),
+                      DataColumn(label: Text('Late')),
                     ],
                     rows: _attendanceRecords.map((record) {
+                      String rollNumber = record['RollNumber'] ?? '';
+                      String attendanceStatus = record['AttendanceStatus'] ?? '';
+
+                      bool isPresent = attendanceStatus == 'present';
+                      bool isAbsent = attendanceStatus == 'absent';
+                      bool isLate = attendanceStatus == 'late';
+
                       return DataRow(cells: [
-                        DataCell(Text(record['RollNumber'] ?? '')),
+                        DataCell(Text(rollNumber)),
                         DataCell(Text(record['Date'] ?? '')),
-                        DataCell(Text(record['AttendanceStatus'] ?? '')),
                         DataCell(
-                          DropdownButton<String>(
-                            value: record['AttendanceStatus'],
-                            items: ['present', 'absent', 'late']
-                                .map((status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(status),
-                            ))
-                                .toList(),
-                            onChanged: (newValue) {
-                              if (newValue != null) {
-                                _updateAttendanceStatus(record['RollNumber']!, newValue);
+                          Checkbox(
+                            value: isPresent,
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateAttendanceStatus(rollNumber, value ? 'present' : (isAbsent ? 'absent' : 'late'));
+                              }
+                            },
+                          ),
+                        ),
+                        DataCell(
+                          Checkbox(
+                            value: isAbsent,
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateAttendanceStatus(rollNumber, value ? 'absent' : (isPresent ? 'present' : 'late'));
+                              }
+                            },
+                          ),
+                        ),
+                        DataCell(
+                          Checkbox(
+                            value: isLate,
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateAttendanceStatus(rollNumber, value ? 'late' : (isPresent ? 'present' : 'absent'));
                               }
                             },
                           ),

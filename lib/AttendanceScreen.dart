@@ -1,4 +1,4 @@
-                                            //mark attendance screen
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -170,6 +170,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _isAttendanceMarked = true;
         });
         print('All attendance records successfully submitted.');
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Attendance submitted successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       } else {
         print('Some attendance records failed to submit.');
       }
@@ -231,8 +239,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 child: Row(
                   children: [
                     Text(
-                      'Selected Date: ${_selectedDate?.toString().split(
-                          ' ')[0] ?? 'None'}',
+                      'Selected Date: ${_selectedDate?.toString().split(' ')[0] ?? 'None'}',
                       style: const TextStyle(fontSize: 16),
                     ),
                     const Spacer(),
@@ -248,6 +255,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               Expanded(
                 child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   child: DataTable(
                     columns: const [
                       DataColumn(label: Text('Roll Number')),
@@ -261,8 +269,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       final rowColor = _getRowColor(rollNumber);
 
                       return DataRow(
-                        color: MaterialStateProperty.resolveWith((
-                            states) => rowColor),
+                        color: WidgetStateProperty.resolveWith((states) => rowColor),
                         cells: [
                           DataCell(Text(rollNumber)),
                           DataCell(Text(student['Name'] ?? 'N/A')),
@@ -312,8 +319,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 onPressed: _isAttendanceMarked ? null : _submitAttendance,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[700],
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
                 child: const Text(
                   'Submit Attendance',
@@ -327,7 +333,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
     );
   }
-
   Color _getRowColor(String rollNumber) {
     final index = attendanceData.indexWhere((entry) =>
     entry['RollNumber'] == rollNumber);
@@ -357,3 +362,4 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return false;
   }
 }
+
