@@ -41,8 +41,8 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                       ),
                     );
                   },
+                  margin: const EdgeInsets.only(bottom: 20),
                 ),
-              if (widget.role != 'Student') const SizedBox(height: 20),
               if (widget.role != 'Student')
                 _buildButton(
                   context,
@@ -56,8 +56,8 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                       ),
                     );
                   },
+                  margin: const EdgeInsets.only(bottom: 20),
                 ),
-              if (widget.role != 'Student') const SizedBox(height: 20),
               _buildButton(
                 context,
                 label: 'View Attendance',
@@ -70,6 +70,7 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                     ),
                   );
                 },
+                margin: const EdgeInsets.only(bottom: 20),
               ),
             ],
           ),
@@ -78,26 +79,31 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
     );
   }
 
-  Widget _buildButton(BuildContext context, {required String label, required IconData icon, required VoidCallback onTap}) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange[700],
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+  Widget _buildButton(BuildContext context, {required String label, required IconData icon, required VoidCallback onTap, EdgeInsets? margin}) {
+    return Container(
+      margin: margin, // Apply margin here
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange[700],
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 5,
         ),
-        elevation: 5,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: Colors.white),
-          const SizedBox(width: 10),
-          Text(label),
-        ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(icon, size: 20, color: Colors.white),
+            ),
+            Text(label),
+          ],
+        ),
       ),
     );
   }

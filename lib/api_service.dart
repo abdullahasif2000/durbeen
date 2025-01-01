@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
@@ -11,10 +12,8 @@ class ApiService {
     final hash = md5.convert(bytes); // Generate MD5 hash
     return hash.toString(); // Return hashed password
   }
-
-  /// Handles user login for different roles
-  Future<Map<String, dynamic>?> login(String email, String password,
-      String role) async {
+/// role based login
+  Future<Map<String, dynamic>?> login(String email, String password, String role) async {
     final roleUrls = {
       "Admin": "$baseUrl/usersdataN.php",
       "Student": "$baseUrl/studentsdataN.php",
@@ -35,12 +34,12 @@ class ApiService {
         final List<dynamic> users = json.decode(response.body);
         print("API response received successfully for role: $role");
 
-        final hashedPassword = hashPassword(password);
+        final hashedPassword = hashPassword(password); // Ensure you have this method
 
         for (var user in users) {
           if (user['Email'] == email && user['Password'] == hashedPassword) {
             print("Login successful for user: ${user['Email']}");
-            return user;
+            return user; // Return user data including role
           }
         }
 
@@ -48,14 +47,14 @@ class ApiService {
         return null;
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
-        throw Exception(
-            "Failed to fetch data. Status Code: ${response.statusCode}");
+        throw Exception("Failed to fetch data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error during login: $e");
       throw Exception("Error during login: $e");
     }
   }
+
 
   /// Fetches available cohorts from the API
   Future<List<dynamic>> fetchCohorts() async {

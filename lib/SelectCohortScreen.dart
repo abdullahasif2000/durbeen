@@ -15,6 +15,7 @@ class SelectCohortScreen extends StatefulWidget {
   @override
   _SelectCohortScreenState createState() => _SelectCohortScreenState();
 }
+
 class _SelectCohortScreenState extends State<SelectCohortScreen> {
   late Future<List<String>> _cohortsFuture;
   late Future<List<Map<String, dynamic>>> _coursesFuture;
@@ -39,7 +40,25 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   // Fetch courses for the selected cohort
   Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
     try {
-      return await ApiService().fetchCourses(cohort); // Fetch courses for a specific cohort
+      // Fetch all courses for the selected cohort
+      final courses = await ApiService().fetchCourses(cohort);
+
+      // Get saved role and FacultyID
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('User  Role') ?? ''; // Adjusted key to match your LoginScreen
+      final facultyID = prefs.getString('FacultyID') ?? '';
+
+      // Log the loaded role and FacultyID for debugging
+      print("Loaded Role: $role");
+      print("Loaded FacultyID: $facultyID");
+
+      // Filter courses based on role
+      if (role == 'Faculty') {
+        return courses.where((course) => course['FacultyID'].toString() == facultyID).toList();
+      }
+
+      // Admin and Student see all courses
+      return courses;
     } catch (e) {
       throw Exception("Failed to load courses: $e");
     }

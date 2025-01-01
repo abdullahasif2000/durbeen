@@ -21,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
     String password = passwordController.text.trim();
     String role = selectedRole!;
 
-
     print("Login attempt: Email: $email, Password: $password, Role: $role");
 
     if (email.isEmpty || password.isEmpty || role.isEmpty) {
@@ -32,16 +31,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-
       final response = await ApiService().login(email, password, role);
 
       if (response != null) {
         // Store the role in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('User Role', role); // Store the role
+        await prefs.setString('User  Role', role); // Store the role
+        print("Role saved in SharedPreferences: $role");
+
+        // If the role is Faculty, retrieve and display FacultyID
+        if (role == "Faculty") {
+          String? facultyID = response['FacultyID'].toString(); // Assuming FacultyID is part of the response
+          await prefs.setString('FacultyID', facultyID);
+          print("Logged in as Faculty. FacultyID: $facultyID");
+        }
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ModuleScreen(role:role)),
+          MaterialPageRoute(builder: (context) => ModuleScreen(role: role)),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -50,19 +57,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (e is FormatException) {
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invalid response format: ${e.toString()}')),
         );
       } else if (e is Exception) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context). showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
       } else {
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unexpected error occurred')),
+          const SnackBar(content: Text('An unexpected error occurred')),
         );
       }
     }
@@ -132,8 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: InputDecoration(
                           labelText: 'Password',
                           border: InputBorder.none,
-                          prefixIcon:
-                          Icon(Icons.lock, color: Colors.orange[700]),
+                          prefixIcon: Icon(Icons.lock, color: Colors.orange[700]),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -174,8 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[700],
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
