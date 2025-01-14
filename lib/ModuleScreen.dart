@@ -89,7 +89,10 @@ class _ModuleScreenState extends State<ModuleScreen> {
     }
   }
 
-  void _logout() {
+  void _logout() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Clears all data from SharedPreferences
+    debugPrint('All SharedPreferences data cleared.');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),

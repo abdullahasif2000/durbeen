@@ -16,14 +16,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   late Future<List<Map<String, dynamic>>> _studentsFuture;
   List<Map<String, dynamic>> attendanceData = [];
   DateTime? _selectedDate;
-  bool _isAttendanceMarked = false; // Track if attendance has been marked
+  bool _isAttendanceMarked = false;
 
   @override
   void initState() {
     super.initState();
     _studentsFuture = _loadAndFetchStudents();
     _checkAttendanceMarked();
-    _selectedDate = DateTime.now(); // Default to today's date
+    _selectedDate = DateTime.now();
   }
 
   Future<List<Map<String, dynamic>>> _loadAndFetchStudents() async {
@@ -67,9 +67,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
 
     try {
+      // Check attendance for the selected course and date
       final isMarked = await ApiService().checkAttendanceMarked(
         sessionID: sessionID,
-        courseID: parsedCourseIDs.first.toString(),
+        courseID: parsedCourseIDs.first.toString(), // Use the current course ID
         sectionID: sectionID,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
       );
@@ -79,25 +80,38 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       });
 
       if (_isAttendanceMarked) {
-        // Notify user (Optional)
         showDialog(
           context: context,
-          builder: (context) =>
-              AlertDialog(
-                title: const Text("Attendance Already Marked"),
-                content: const Text(
-                    "Attendance has already been marked for this date."),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text("OK"),
-                  ),
-                ],
+          builder: (context) => AlertDialog(
+            title: Text('Attendance Status'),
+            content: Text('Attendance has already been marked for the selected date.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
               ),
+            ],
+          ),
+        );
+      } else {
+        // Notify user that attendance is not marked
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Attendance Status'),
+            content: Text('No attendance records found for the selected date.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          ),
         );
       }
     } catch (e) {
-      print("Error checking attendance: $e");
+      print('Error checking attendance: $e');
+
     }
   }
 

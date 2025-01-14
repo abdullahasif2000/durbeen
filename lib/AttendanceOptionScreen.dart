@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'SelectCohortScreen.dart';
+import 'ViewAttendanceSummary.dart';
 
 class AttendanceOptionScreen extends StatefulWidget {
   final String role;
@@ -72,6 +73,21 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
                 },
                 margin: const EdgeInsets.only(bottom: 20),
               ),
+              if (widget.role == 'Student')
+                _buildButton(
+                  context,
+                  label: 'View Summary',
+                  icon: Icons.summarize,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ViewAttendanceSummary(),
+                      ),
+                    );
+                  },
+                  margin: const EdgeInsets.only(bottom: 20),
+                ),
             ],
           ),
         ),

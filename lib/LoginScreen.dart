@@ -21,12 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
     String password = passwordController.text.trim();
     String role = selectedRole!;
 
-    print("Login attempt: Email: $email, Password: $password, Role: $role");
+    if (!_isValidEmail(email)) {
+      _showSnackbar('Please enter a valid email address');
+      return;
+    }
 
-    if (email.isEmpty || password.isEmpty || role.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid credentials')),
-      );
+    if (password.isEmpty || password.length < 6) {
+      _showSnackbar('Password must be at least 6 characters long');
       return;
     }
 
@@ -34,42 +35,46 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await ApiService().login(email, password, role);
 
       if (response != null) {
-        // Store the role in SharedPreferences
+        // Save login state
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('User  Role', role); // Store the role
-        print("Role saved in SharedPreferences: $role");
+        await prefs.setBool('isLoggedIn', true);
 
-        // If the role is Faculty, retrieve and display FacultyID
+        // Save user role
+        await prefs.setString('UserRole', role);
+
         if (role == "Faculty") {
-          String? facultyID = response['FacultyID'].toString(); // Assuming FacultyID is part of the response
-          await prefs.setString('FacultyID', facultyID);
-          print("Logged in as Faculty. FacultyID: $facultyID");
+          String? facultyID = response['FacultyID']?.toString();
+          await prefs.setString('FacultyID', facultyID ?? '');
+          print("FacultyID saved: $facultyID");
         }
 
+        if (role == "Student") {
+          String? rollNumber = response['RollNumber']?.toString();
+          await prefs.setString('RollNumber', rollNumber ?? '');
+          print("RollNumber saved: $rollNumber");
+        }
+
+        // Navigate to ModuleScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ModuleScreen(role: role)),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: Invalid credentials')),
-        );
+        _showSnackbar('Invalid credentials. Please try again.');
       }
     } catch (e) {
-      if (e is FormatException) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid response format: ${e.toString()}')),
-        );
-      } else if (e is Exception) {
-        ScaffoldMessenger.of(context). showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An unexpected error occurred')),
-        );
-      }
+      _showSnackbar('Error occurred during login. Please try again later.');
+      print('Login error: $e');
     }
+  }
+
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

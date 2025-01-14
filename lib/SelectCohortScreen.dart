@@ -3,12 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'api_service.dart';
 import 'CreateSectionScreen.dart';
-import 'dart:convert';
 import 'SelectSectionScreen.dart';
+import 'dart:convert';
 
 class SelectCohortScreen extends StatefulWidget {
-  final String source; // Parameter to determine the source module
-  final String? option; // Optional parameter to determine the action (Mark, Edit, View)
+  final String source; // Determines the source module
+  final String? option; // Optional parameter for the action (Mark, Edit, View)
 
   const SelectCohortScreen({Key? key, required this.source, this.option}) : super(key: key);
 
@@ -19,13 +19,22 @@ class SelectCohortScreen extends StatefulWidget {
 class _SelectCohortScreenState extends State<SelectCohortScreen> {
   late Future<List<String>> _cohortsFuture;
   late Future<List<Map<String, dynamic>>> _coursesFuture;
-  String? _selectedCohort; // Holds the currently selected cohort
-  final List<Map<String, dynamic>> _selectedCourses = []; // Stores selected courses
+  String? _selectedCohort;
+  final List<Map<String, dynamic>> _selectedCourses = [];
+  String? _role;
 
   @override
   void initState() {
     super.initState();
     _cohortsFuture = fetchCohorts();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString('UserRole'); // Load user role from SharedPreferences
+    });
   }
 
   Future<List<String>> fetchCohorts() async {
@@ -37,39 +46,31 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
     }
   }
 
-  // Fetch courses for the selected cohort
   Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
     try {
-      // Fetch all courses for the selected cohort
-      final courses = await ApiService().fetchCourses(cohort);
-
-      // Get saved role and FacultyID
       final prefs = await SharedPreferences.getInstance();
-      final role = prefs.getString('User  Role') ?? ''; // Adjusted key to match your LoginScreen
-      final facultyID = prefs.getString('FacultyID') ?? '';
+      final rollNumber = prefs.getString('RollNumber') ?? '';
+      final sessionID = prefs.getString('SessionID') ?? '';
 
-      // Log the loaded role and FacultyID for debugging
-      print("Loaded Role: $role");
-      print("Loaded FacultyID: $facultyID");
-
-      // Filter courses based on role
-      if (role == 'Faculty') {
+      if (_role == 'Student') {
+        return await ApiService().fetchStudentCourses(sessionID, rollNumber);
+      } else if (_role == 'Faculty') {
+        final courses = await ApiService().fetchCourses(cohort);
+        final facultyID = prefs.getString('FacultyID') ?? '';
         return courses.where((course) => course['FacultyID'].toString() == facultyID).toList();
+      } else {
+        return await ApiService().fetchCourses(cohort);
       }
-
-      // Admin and Student see all courses
-      return courses;
     } catch (e) {
       throw Exception("Failed to load courses: $e");
     }
   }
 
-  // Save selected courses' IDs to SharedPreferences
   Future<void> _saveSelectedCourseIDs() async {
     final prefs = await SharedPreferences.getInstance();
     final selectedCourseIDs = _selectedCourses.map((course) => course['CourseID'].toString()).toList();
     await prefs.setString('SelectedCourseIDs', jsonEncode(selectedCourseIDs));
-    await prefs.setString('CourseIDs', jsonEncode(selectedCourseIDs)); // Save under 'CourseIDs'
+    await prefs.setString('CourseIDs', jsonEncode(selectedCourseIDs));
     debugPrint('Saved CourseIDs to SharedPreferences: $selectedCourseIDs');
   }
 
@@ -91,7 +92,6 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Dropdown for selecting cohort
             FutureBuilder<List<String>>(
               future: _cohortsFuture,
               builder: (context, snapshot) {
@@ -119,16 +119,13 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                   onChanged: (value) {
                     setState(() {
                       _selectedCohort = value;
-                      _coursesFuture = fetchCourses(value!); // Fetch courses when cohort is selected
+                      _coursesFuture = fetchCourses(value!);
                     });
                   },
                 );
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Display courses once cohort is selected
             if (_selectedCohort != null)
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -143,8 +140,9 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                     }
 
                     final courses = snapshot.data!;
-
-                    return DataTable2(
+                    // Dynamic table depending on whether it's student or faculty
+                    return _role == 'Student'
+                        ? DataTable2(
                       headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
                       headingTextStyle: const TextStyle(
                         color: Colors.white,
@@ -156,6 +154,54 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                       border: TableBorder.all(color: Colors.grey[300]!, width: 1),
                       columns: const [
                         DataColumn(label: Text('Sr. No')),
+                        DataColumn(label: Text('Course ID')),
+                        DataColumn(label: Text('Course Code')),
+                        DataColumn(label: Text('Course Name')),
+                        DataColumn(label: Text('Credits')),
+                      ],
+                      rows: List.generate(
+                        courses.length,
+                            (index) {
+                          final course = courses[index];
+                          final isSelected = _selectedCourses.contains(course);
+
+                          return DataRow(
+                            selected: isSelected,
+                            onSelectChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  if (!_selectedCourses.contains(course)) {
+                                    _selectedCourses.add(course);
+                                  }
+                                } else {
+                                  _selectedCourses.remove(course);
+                                }
+                              });
+                            },
+                            cells: [
+                              DataCell(Text('${index + 1}')),
+                              DataCell(Text(course['CourseID'].toString())),
+                              DataCell(Text(course['CCNew'])),
+                              DataCell(Text(course['Name'])),
+                              DataCell(Text(course['CreditHours']?.toString() ?? 'N/A')),
+                            ],
+                          );
+                        },
+                      ),
+                    )
+                        : DataTable2(
+                      headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
+                      headingTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      columnSpacing: 1,
+                      horizontalMargin: 5,
+                      minWidth: 700,
+                      border: TableBorder.all(color: Colors.grey[300]!, width: 1),
+                      columns: const [
+                        DataColumn(label: Text('Sr. No')),
+                        DataColumn(label: Text('Course ID')),
                         DataColumn(label: Text('Course Name')),
                         DataColumn(label: Text('Faculty Name')),
                         DataColumn(label: Text('Faculty ID')),
@@ -182,8 +228,9 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                             },
                             cells: [
                               DataCell(Text('${index + 1}')),
-                              DataCell(Text(course['Name'], maxLines: 1)),
-                              DataCell(Text(course['FacultyName'], maxLines: 1)),
+                              DataCell(Text(course['CourseID'].toString())),
+                              DataCell(Text(course['Name'])),
+                              DataCell(Text(course['FacultyName'])),
                               DataCell(Text(course['FacultyID'].toString())),
                               DataCell(Text(course['SessionID'].toString())),
                             ],
@@ -194,33 +241,29 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                   },
                 ),
               ),
-
             const SizedBox(height: 20),
-
-            // Button to proceed to CreateSectionScreen if courses are selected
             if (_selectedCourses.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
                   onPressed: () async {
-                    await _saveSelectedCourseIDs(); // Save selected course IDs before navigation
+                    await _saveSelectedCourseIDs();
                     if (widget.source == 'Mapping') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => CreateSectionScreen(
                             cohort: _selectedCohort!,
-                            selectedCourses: _selectedCourses, // Pass selected courses to the next screen
+                            selectedCourses: _selectedCourses,
                           ),
                         ),
                       );
                     } else if (widget.source == 'Attendance') {
-                      // Navigate to SelectSectionScreen and pass the option
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => SelectSectionScreen(
-                            option: widget.option ?? '', // Pass the option to SelectSectionScreen
+                            option: widget.option ?? '',
                           ),
                         ),
                       );
@@ -235,10 +278,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                   ),
                   child: const Text(
                     'Proceed with Selected Courses',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

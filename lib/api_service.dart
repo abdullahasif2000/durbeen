@@ -1,10 +1,21 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
 class ApiService {
   static const String baseUrl = "https://results.gece.edu.pk/geceapi";
+  final String apiKey = "z8p3JuLm6V7c9vwXG9K8TrVt5KqXxA5RfjNVu2WnNAs";
+
+  // Combine email, role, and secret key to make hashed key
+  String _generateApiKey(String email, String role) {
+    String combined = "$email|$role|$apiKey";
+    String generatedApiKey = sha256.convert(utf8.encode(combined)).toString();
+
+    // Print the generated API key for debugging
+    print("Generated API Key: $generatedApiKey");
+
+    return generatedApiKey;
+  }
 
   /// Hashes a password using MD5
   String hashPassword(String password) {
@@ -28,13 +39,21 @@ class ApiService {
     final url = roleUrls[role]!;
 
     try {
-      final response = await http.get(Uri.parse(url));
+      String apiKey = _generateApiKey(email, role);
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': apiKey, //  API key  header
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> users = json.decode(response.body);
         print("API response received successfully for role: $role");
 
-        final hashedPassword = hashPassword(password); // Ensure you have this method
+        final hashedPassword = hashPassword(password);
 
         for (var user in users) {
           if (user['Email'] == email && user['Password'] == hashedPassword) {
@@ -54,6 +73,7 @@ class ApiService {
       throw Exception("Error during login: $e");
     }
   }
+
 
 
   /// Fetches available cohorts from the API
@@ -546,4 +566,59 @@ class ApiService {
       throw Exception('Failed to update attendance: $e');
     }
   }
+  /// fetch courses based on student
+  Future<List<Map<String, dynamic>>> fetchStudentCourses(String sessionID, String rollNumber) async {
+    final url = '$baseUrl/fetchcoursesstudentN.php?RollNumber=$rollNumber&SessionID=$sessionID';
+    print('API Call Initiated: $url'); // Log the API endpoint being called
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      print('API Response Status Code: ${response.statusCode}'); // Log the status code
+
+      if (response.statusCode == 200) {
+        print('API Response Body: ${response.body}'); // Log the response body
+        final List data = jsonDecode(response.body);
+        return data.map((course) => course as Map<String, dynamic>).toList();
+      } else {
+        print('API Call Failed: Status Code ${response.statusCode}, Response: ${response.body}');
+        throw Exception('Failed to load student courses');
+      }
+    } catch (e) {
+      print('API Call Error: $e'); // Log any errors
+      throw Exception('Error during API call: $e');
+    }
+  }
+
+  /// Fetch all attendance of a student
+  Future<List<Map<String, dynamic>>> fetchAttendance(
+      String sessionID, String rollNumber, String courseID) async {
+    final url =
+        '$baseUrl/fetch_attendanceN.php?RollNumber=$rollNumber&SessionID=$sessionID&CourseID=$courseID';
+    print('Fetching attendance from: $url');
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      print('Attendance API Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Check if the response body is a valid JSON array
+        final List<dynamic> data = jsonDecode(response.body);
+
+        // Ensure that each item is a Map<String, dynamic>
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else {
+            throw Exception('Invalid item type: ${item.runtimeType}');
+          }
+        }).toList();
+            } else {
+        throw Exception('Failed to load attendance data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching attendance: $e');
+      throw Exception('Error during API call: $e');
+    }
+  }
+
 }
