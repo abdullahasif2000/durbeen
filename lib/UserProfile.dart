@@ -10,8 +10,9 @@ class UserProfile extends StatefulWidget {
 }
 
 class _UserProfileState extends State<UserProfile> {
-  Map<String, dynamic>? loggedInStudent;
+  Map<String, dynamic>? userData;
   bool isLoading = true;
+  String userRole = '';
 
   @override
   void initState() {
@@ -21,41 +22,51 @@ class _UserProfileState extends State<UserProfile> {
 
   Future<void> _fetchUserData() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? savedRollNumber = prefs.getString('RollNumber');
+    final String? savedRole = prefs.getString('UserRole'); // Fetch role from SharedPreferences
+    setState(() {
+      userRole = savedRole ?? '';
+    });
 
-    if (savedRollNumber == null || savedRollNumber.isEmpty) {
+    if (userRole.isEmpty) {
       setState(() {
         isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: No Roll Number found')),
+        const SnackBar(content: Text('Error: No Role found')),
       );
       return;
     }
 
     try {
-      final List<Map<String, dynamic>> data = await ApiService().fetchStudentData();
-      final student = data.firstWhere(
-            (student) => student['RollNumber'] == savedRollNumber,
-        orElse: () => {},
-      );
-
-      setState(() {
-        loggedInStudent = student.isNotEmpty ? student : null;
-        isLoading = false;
-      });
-
-      if (loggedInStudent == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No data found for the logged-in student')),
+      if (userRole == 'Student') {
+        final List<Map<String, dynamic>> studentData = await ApiService().fetchStudentData();
+        final savedRollNumber = prefs.getString('RollNumber');
+        final student = studentData.firstWhere(
+              (student) => student['RollNumber'] == savedRollNumber,
+          orElse: () => {},
         );
+        setState(() {
+          userData = student.isNotEmpty ? student : null;
+          isLoading = false;
+        });
+      } else if (userRole == 'Faculty') {
+        final List<Map<String, dynamic>> facultyData = await ApiService().fetchFacultyData();
+        final savedFacultyID = prefs.getString('FacultyID');
+        final faculty = facultyData.firstWhere(
+              (faculty) => faculty['FacultyID'] == savedFacultyID,
+          orElse: () => {},
+        );
+        setState(() {
+          userData = faculty.isNotEmpty ? faculty : null;
+          isLoading = false;
+        });
       }
     } catch (e) {
       setState(() {
         isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching student data: $e')),
+        SnackBar(content: Text('Error fetching data: $e')),
       );
     }
   }
@@ -69,7 +80,7 @@ class _UserProfileState extends State<UserProfile> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : loggedInStudent != null
+          : userData != null
           ? SingleChildScrollView(
         child: Column(
           children: [
@@ -88,7 +99,7 @@ class _UserProfileState extends State<UserProfile> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    loggedInStudent!['Name'] ?? 'N/A',
+                    userData!['Name'] ?? 'N/A',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -97,7 +108,7 @@ class _UserProfileState extends State<UserProfile> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    loggedInStudent!['Email'] ?? 'N/A',
+                    userData!['Email'] ?? 'N/A',
                     style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ],
@@ -125,13 +136,20 @@ class _UserProfileState extends State<UserProfile> {
                         ),
                       ),
                       const Divider(),
-                      _buildInfoRow('Seat Number', loggedInStudent!['SeatNumber']),
-                      _buildInfoRow('Enrollment Number', loggedInStudent!['EnrollmentNumber']),
-                      _buildInfoRow('Roll Number', loggedInStudent!['RollNumber']),
-                      _buildInfoRow('Father Name', loggedInStudent!['FatherName']),
-                      _buildInfoRow('Year of Admission', loggedInStudent!['YearAdmission']),
-                      _buildInfoRow('Cohort', loggedInStudent!['cohort']),
-                      _buildInfoRow('Status', loggedInStudent!['Status']),
+                      if (userRole == 'Student') ...[
+                        _buildInfoRow('Roll Number', userData!['RollNumber']),
+                        _buildInfoRow('Name', userData!['Name']),
+                        _buildInfoRow('Father Name', userData!['FatherName']),
+                        _buildInfoRow('Year of Admission', userData!['YearAdmission']),
+                        _buildInfoRow('Cohort', userData!['cohort']),
+                        _buildInfoRow('Status', userData!['Status']),
+                        _buildInfoRow('Seat Number', userData!['SeatNumber']),
+                        _buildInfoRow('Enrollment Number', userData!['EnrollmentNumber']),
+                      ] else if (userRole == 'Faculty') ...[
+                        _buildInfoRow('Faculty ID', userData!['FacultyID']),
+                        _buildInfoRow('Email', userData!['Email']),
+                        _buildInfoRow('Status', userData!['Status']),
+                      ],
                     ],
                   ),
                 ),

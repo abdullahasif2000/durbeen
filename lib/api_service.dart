@@ -624,12 +624,12 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchStudentData() async {
     try {
       final url='$baseUrl/studentsdataN.php';
-      print('Fetching data from: $url'); // Debugging the URL
+      print('Fetching data from: $url');
 
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'Accept': 'application/json', // Use Accept instead of Content-Type
+          'Accept': 'application/json',
         },
       );
 
@@ -648,6 +648,37 @@ class ApiService {
     } catch (e) {
       print('ERROR: $e');
       throw Exception('Error fetching student data: $e');
+    }
+  }
+
+  /// Fetch Faculty Data
+  Future<List<Map<String, dynamic>>> fetchFacultyData() async {
+    try {
+      final url = '$baseUrl/facultydataN.php';
+      print('Fetching data from: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      // Debug the response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Ensure data is a list of maps
+        return jsonData.map((faculty) => faculty as Map<String, dynamic>).toList();
+      } else {
+        throw Exception('Failed to load faculty data: ${response.statusCode} - ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('ERROR: $e');
+      throw Exception('Error fetching faculty data: $e');
     }
   }
 }
