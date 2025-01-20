@@ -620,5 +620,34 @@ class ApiService {
       throw Exception('Error during API call: $e');
     }
   }
+  /// fetch student profile data
+  Future<List<Map<String, dynamic>>> fetchStudentData() async {
+    try {
+      final url='$baseUrl/studentsdataN.php';
+      print('Fetching data from: $url'); // Debugging the URL
 
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json', // Use Accept instead of Content-Type
+        },
+      );
+
+      // Debug the response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Ensure data is a list of maps
+        return jsonData.map((student) => student as Map<String, dynamic>).toList();
+      } else {
+        throw Exception('Failed to load student data: ${response.statusCode} - ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('ERROR: $e');
+      throw Exception('Error fetching student data: $e');
+    }
+  }
 }

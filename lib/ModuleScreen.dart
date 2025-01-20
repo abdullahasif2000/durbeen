@@ -5,6 +5,7 @@ import 'LoginScreen.dart';
 import 'CreateSectionScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AttendanceOptionScreen.dart';
+import 'UserProfile.dart';
 
 class ModuleScreen extends StatefulWidget {
   final String role;
@@ -17,6 +18,7 @@ class ModuleScreen extends StatefulWidget {
 
 class _ModuleScreenState extends State<ModuleScreen> {
   String? selectedSession;
+  String? userRole;  // Variable to store the user role
   List<Map<String, dynamic>> sessions = [];
 
   @override
@@ -24,8 +26,8 @@ class _ModuleScreenState extends State<ModuleScreen> {
     super.initState();
     _fetchSessions();
     _loadSession();
+    _loadUserRole();  // Load the user role on initialization
   }
-
 
   Future<void> _fetchSessions() async {
     try {
@@ -47,12 +49,10 @@ class _ModuleScreenState extends State<ModuleScreen> {
     }
   }
 
-
   void _selectSession(String? sessionId) async {
     setState(() {
       selectedSession = sessionId;
     });
-
 
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('SessionID', sessionId ?? '');
@@ -61,7 +61,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
     Navigator.pop(context);
   }
 
-
   void _loadSession() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -69,17 +68,23 @@ class _ModuleScreenState extends State<ModuleScreen> {
     });
   }
 
+  void _loadUserRole() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? storedRole = prefs.getString('UserRole');  // Get the user role
+    setState(() {
+      userRole = storedRole;  // Update the state with the stored role
+    });
+  }
 
   void _goToCreateSection() {
     if (selectedSession != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              CreateSectionScreen(
-                cohort: "Cohort Example", // Use the appropriate cohort
-                selectedCourses: [], // Pass selected courses as needed
-              ),
+          builder: (context) => CreateSectionScreen(
+            cohort: "Cohort Example", // Use the appropriate cohort
+            selectedCourses: [], // Pass selected courses as needed
+          ),
         ),
       );
     } else {
@@ -128,20 +133,29 @@ class _ModuleScreenState extends State<ModuleScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
+            DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.orange,
+                color: Colors.orange, // The color of the header area
               ),
-              child: Text(
-                'Options',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Display the user role directly in the header area
+                  if (userRole != null)
+                    Text(
+                      userRole!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
 
+            // Other drawer items...
             ListTile(
               title: const Text('Select Session'),
               trailing: DropdownButton<String>(
@@ -159,6 +173,16 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 }).toList(),
               ),
             ),
+            ListTile(
+              title: const Text('Profile'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const UserProfile()),
+                );
+              },
+            ),
+
             // Logout option
             ListTile(
               title: const Text('Logout'),
@@ -167,6 +191,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
           ],
         ),
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
@@ -182,7 +207,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
             return GestureDetector(
               onTap: () {
                 if (module["title"] == "Mapping" && widget.role != "Admin") {
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Access Denied: Admins only'),
@@ -190,7 +214,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     ),
                   );
                 } else if (module["title"] == "Mapping" && widget.role == "Admin") {
-
                   Navigator.push(
                     context,
                     MaterialPageRoute(
