@@ -116,6 +116,17 @@ class _ModuleScreenState extends State<ModuleScreen> {
       {"title": "Mapping", "icon": Icons.map},
     ];
 
+    // Filter modules based on role
+    final List<Map<String, dynamic>> filteredModules = modules.where((module) {
+      if (widget.role == "Faculty" && module["title"] == "Grades") {
+        return false; // Hide "Grades" for Faculty
+      }
+      if ((widget.role == "Student" || widget.role == "Faculty") && module["title"] == "Mapping") {
+        return false; // Hide "Mapping" for Student and Faculty
+      }
+      return true; // Keep other modules
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -201,9 +212,10 @@ class _ModuleScreenState extends State<ModuleScreen> {
             crossAxisSpacing: 16,
             childAspectRatio: 1.0,
           ),
-          itemCount: modules.length,
+          itemCount: filteredModules.length, // Updated to use filtered modules
           itemBuilder: (context, index) {
-            final module = modules[index];
+            final module = filteredModules[index];
+
             return GestureDetector(
               onTap: () {
                 if (module["title"] == "Mapping" && widget.role != "Admin") {
@@ -221,7 +233,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     ),
                   );
                 } else if (module["title"] == "Attendance") {
-                  // Navigate to AttendanceOptionScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -229,15 +240,10 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     ),
                   );
                 } else {
-                  // Navigate to CreateSectionScreen for Courses
-                  if (module["title"] == "Courses") {
-                    // _goToCreateSection();
-                  } else {
-                    // Placeholder action for other modules
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Tapped on ${module["title"]}')),
-                    );
-                  }
+                  // Placeholder action for other modules
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Tapped on ${module["title"]}')),
+                  );
                 }
               },
               child: Card(
@@ -249,8 +255,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     const SizedBox(height: 10),
                     Text(
                       module["title"],
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

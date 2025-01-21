@@ -651,7 +651,7 @@ class ApiService {
     }
   }
 
-  /// Fetch Faculty Data
+  /// Fetch Faculty profile Data
   Future<List<Map<String, dynamic>>> fetchFacultyData() async {
     try {
       final url = '$baseUrl/facultydataN.php';
@@ -679,6 +679,37 @@ class ApiService {
     } catch (e) {
       print('ERROR: $e');
       throw Exception('Error fetching faculty data: $e');
+    }
+  }
+
+  /// fetch admin profile data
+  Future<List<Map<String, dynamic>>> fetchAdminData() async {
+    try {
+      final url = '$baseUrl/usersdataN.php';
+      print('Fetching admin data from: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      // Debugging the response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Ensure data is a list of maps
+        return jsonData.map((admin) => admin as Map<String, dynamic>).toList();
+      } else {
+        throw Exception('Failed to load admin data: ${response.statusCode} - ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('ERROR: $e');
+      throw Exception('Error fetching admin data: $e');
     }
   }
 }

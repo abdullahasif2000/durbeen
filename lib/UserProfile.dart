@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'api_service.dart';
 
 class UserProfile extends StatefulWidget {
@@ -13,11 +16,13 @@ class _UserProfileState extends State<UserProfile> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   String userRole = '';
+  File? profileImage;
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    _loadProfileImage();
   }
 
   Future<void> _fetchUserData() async {
@@ -60,6 +65,17 @@ class _UserProfileState extends State<UserProfile> {
           userData = faculty.isNotEmpty ? faculty : null;
           isLoading = false;
         });
+      } else if (userRole == 'Admin') {
+        final List<Map<String, dynamic>> adminData = await ApiService().fetchAdminData();
+        final savedAdminEmail = prefs.getString('AdminEmail'); // Fetch saved AdminEmail
+        final admin = adminData.firstWhere(
+              (admin) => admin['Email'] == savedAdminEmail,
+          orElse: () => {},
+        );
+        setState(() {
+          userData = admin.isNotEmpty ? admin : null;
+          isLoading = false;
+        });
       }
     } catch (e) {
       setState(() {
@@ -68,6 +84,36 @@ class _UserProfileState extends State<UserProfile> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching data: $e')),
       );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final Directory appDocDir = await getApplicationDocumentsDirectory();
+      final String imagePath = '${appDocDir.path}/profile_image.png'; // Path in document directory
+      final File imageFile = File(imagePath);
+
+      // Save image to document directory
+      await imageFile.writeAsBytes(await pickedFile.readAsBytes());
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profileImagePath', imagePath); // Save image path
+
+      setState(() {
+        profileImage = imageFile; // Update UI
+      });
+    }
+  }
+
+  Future<void> _loadProfileImage() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? imagePath = prefs.getString('profileImagePath'); // Retrieve image path
+    if (imagePath != null) {
+      setState(() {
+        profileImage = File(imagePath); // Load the image
+      });
     }
   }
 
@@ -92,14 +138,40 @@ class _UserProfileState extends State<UserProfile> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, size: 60, color: Colors.orange),
+                  GestureDetector(
+                    onTap: _pickImage, // Open image picker on tap
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          backgroundImage:
+                          profileImage != null ? FileImage(profileImage!) : null,
+                          child: profileImage == null
+                              ? const Icon(Icons.person, size: 60, color: Colors.orange)
+                              : null,
+                        ),
+                        if (profileImage == null)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.orange,
+                              child: const Icon(
+                                Icons.add,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    userData!['Name'] ?? 'N/A',
+                    userData!['Email'] ?? 'N/A',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -108,7 +180,7 @@ class _UserProfileState extends State<UserProfile> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    userData!['Email'] ?? 'N/A',
+                    userRole,
                     style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ],
@@ -149,6 +221,10 @@ class _UserProfileState extends State<UserProfile> {
                         _buildInfoRow('Faculty ID', userData!['FacultyID']),
                         _buildInfoRow('Email', userData!['Email']),
                         _buildInfoRow('Status', userData!['Status']),
+                      ] else if (userRole == 'Admin') ...[
+                        _buildInfoRow('Admin ID', userData!['id']),
+                        _buildInfoRow('Email', userData!['Email']),
+                        _buildInfoRow('Department', userData!['department']),
                       ],
                     ],
                   ),
