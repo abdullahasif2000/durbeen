@@ -40,7 +40,7 @@ class SplashScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/cc-logo1-rbg.png',
+                  'assets/images/CampusConnect large(1).png',
                   height: 350,
                 ),
                 const SizedBox(height: 20),

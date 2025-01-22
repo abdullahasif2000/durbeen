@@ -27,13 +27,20 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   void initState() {
     super.initState();
     _cohortsFuture = fetchCohorts();
-    _loadUserRole();
+    _loadUserRoleAndCohort();
   }
 
-  Future<void> _loadUserRole() async {
+  Future<void> _loadUserRoleAndCohort() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedCohort = prefs.getString('cohort'); // Load the cohort from SharedPreferences
     setState(() {
-      _role = prefs.getString('UserRole'); // Load user role from SharedPreferences
+      _role = prefs.getString('UserRole'); // Load user role
+      if (_role == 'Student') {
+        _selectedCohort = savedCohort; // Automatically set the cohort for students
+        if (_selectedCohort != null) {
+          _coursesFuture = fetchCourses(_selectedCohort!); // Fetch courses for the pre-selected cohort
+        }
+      }
     });
   }
 
@@ -116,7 +123,9 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                       child: Text(cohort),
                     );
                   }).toList(),
-                  onChanged: (value) {
+                  onChanged: _role == 'Student'
+                      ? null // Disable dropdown for students
+                      : (value) {
                     setState(() {
                       _selectedCohort = value;
                       _coursesFuture = fetchCourses(value!);
@@ -140,7 +149,6 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                     }
 
                     final courses = snapshot.data!;
-                    // Dynamic table depending on whether it's student or faculty
                     return _role == 'Student'
                         ? DataTable2(
                       headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
@@ -288,3 +296,4 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
     );
   }
 }
+

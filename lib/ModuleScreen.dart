@@ -96,13 +96,27 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
   void _logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Clears all data from SharedPreferences
-    debugPrint('All SharedPreferences data cleared.');
+
+    // Get the current profile image path before clearing other data
+    final String? profileImagePath = prefs.getString('profileImagePath');
+
+    // Clear all keys except 'profileImagePath'
+    await prefs.clear();
+
+    // Restore the profile image path
+    if (profileImagePath != null) {
+      await prefs.setString('profileImagePath', profileImagePath);
+    }
+
+    debugPrint('All SharedPreferences data cleared except profileImagePath.');
+
+    // Navigate to the LoginScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

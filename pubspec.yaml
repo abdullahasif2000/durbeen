@@ -30,10 +30,14 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/durbeen-logo.png
-    - assets/images/cc-logo1-rbg.png
+
+    - assets/images/CampusConnect large(1).png
+    - assets/images/CampusConnectsmall.png
+    - assets/images/CampusConnectmedium.png
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/cc-logo1-rbg.png"
+  image_path: "assets/images/CampusConnectsmall.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/CampusConnectsmall.png"

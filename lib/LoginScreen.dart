@@ -56,8 +56,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (role == "Student") {
           String? rollNumber = response['RollNumber']?.toString();
+          String? cohort = response['cohort']?.toString();
           await prefs.setString('RollNumber', rollNumber ?? '');
+          await prefs.setString('cohort', cohort ?? '');
           print("RollNumber saved: $rollNumber");
+          print("Cohort saved: $cohort");
         }
 
         // Navigate to ModuleScreen
@@ -73,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Login error: $e');
     }
   }
+
 
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
@@ -112,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/cc-logo1-rbg.png',
+                'assets/images/CampusConnectsmall.png',
                 height: 170,
               ),
               const SizedBox(height: 30),

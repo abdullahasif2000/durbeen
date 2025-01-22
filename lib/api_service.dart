@@ -228,7 +228,7 @@ class ApiService {
     }
   }
 
-  // Fetch sections based on CourseID and SessionID
+  /// Fetch sections based on CourseID and SessionID
   Future<List<Map<String, dynamic>>> fetchSections({
     required String courseID,
     required String sessionID,
