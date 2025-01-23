@@ -175,7 +175,9 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
 
                           return DataRow(
                             selected: isSelected,
-                            onSelectChanged: (value) {
+                            onSelectChanged: widget.source == 'Courses'
+                                ? null // Disable selection if source is 'Courses'
+                                : (value) {
                               setState(() {
                                 if (value == true) {
                                   if (!_selectedCourses.contains(course)) {
@@ -223,7 +225,9 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
 
                           return DataRow(
                             selected: isSelected,
-                            onSelectChanged: (value) {
+                            onSelectChanged: widget.source == 'Courses'
+                                ? null // Disable selection if source is 'Courses'
+                                : (value) {
                               setState(() {
                                 if (value == true) {
                                   if (!_selectedCourses.contains(course)) {
@@ -250,7 +254,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                 ),
               ),
             const SizedBox(height: 20),
-            if (_selectedCourses.isNotEmpty)
+            if (_selectedCourses.isNotEmpty && widget.source != 'Courses')
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
@@ -290,6 +294,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                   ),
                 ),
               ),
+
           ],
         ),
       ),

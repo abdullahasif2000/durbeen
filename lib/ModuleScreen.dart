@@ -232,7 +232,16 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
             return GestureDetector(
               onTap: () {
-                if (module["title"] == "Mapping" && widget.role != "Admin") {
+                if (module["title"] == "Courses") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SelectCohortScreen(
+                        source: 'Courses', // Pass the source as 'Courses'
+                      ),
+                    ),
+                  );
+                } else if (module["title"] == "Mapping" && widget.role != "Admin") {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Access Denied: Admins only'),
@@ -260,6 +269,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                   );
                 }
               },
+
               child: Card(
                 elevation: 4,
                 child: Column(
