@@ -589,6 +589,29 @@ class ApiService {
     }
   }
 
+  ///fetch courses based on faculty
+  Future<List<Map<String, dynamic>>> fetchFacultyCourses(String facultyID, String sessionID) async {
+    final url = '$baseUrl/fetch_faculty_coursesN.php?FacultyID=$facultyID&SessionID=$sessionID';
+    print('API Call Initiated: $url'); // Log the API endpoint being called
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      print('API Response Status Code: ${response.statusCode}'); // Log the status code
+
+      if (response.statusCode == 200) {
+        print('API Response Body: ${response.body}'); // Log the response body
+        final List data = jsonDecode(response.body);
+        return data.map((course) => course as Map<String, dynamic>).toList();
+      } else {
+        print('API Call Failed: Status Code ${response.statusCode}, Response: ${response.body}');
+        throw Exception('Failed to load faculty courses');
+      }
+    } catch (e) {
+      print('API Call Error: $e'); // Log any errors
+      throw Exception('Error during API call: $e');
+    }
+  }
+
   /// Fetch all attendance of a student
   Future<List<Map<String, dynamic>>> fetchAttendance(
       String sessionID, String rollNumber, String courseID) async {
@@ -702,7 +725,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
 
-        // Ensure data is a list of maps
+
         return jsonData.map((admin) => admin as Map<String, dynamic>).toList();
       } else {
         throw Exception('Failed to load admin data: ${response.statusCode} - ${response.reasonPhrase}');
@@ -710,6 +733,57 @@ class ApiService {
     } catch (e) {
       print('ERROR: $e');
       throw Exception('Error fetching admin data: $e');
+    }
+  }
+
+  ///fetch attendance dates
+  Future<List<String>> fetchAttendanceDates(String sessionID, String courseID) async {
+    final url = '$baseUrl/fetch_attendance_dates.php?SessionID=$sessionID&CourseID=$courseID';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        // Extract dates from the response
+        return data.map((item) => item['Date'] as String).toList();
+      } else {
+        throw Exception('Failed to load attendance dates');
+      }
+    } catch (e) {
+      print('Error fetching attendance dates: $e');
+      throw e; // Rethrow the error for handling in the UI
+    }
+  }
+  /// fetch attendance details
+  Future<List<Map<String, dynamic>>> fetchAttendanceDetails(String sessionID, String courseID, String date) async {
+    final url = '$baseUrl/fetch_attendance_details.php?SessionID=$sessionID&CourseID=$courseID&Date=$date';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((item) => {
+          "id": item['id'],
+          "StudentMapID": item['StudentMapID'],
+          "Date": item['Date'],
+          "AttendanceStatus": item['AttendanceStatus'],
+          "WarningsSent": item['WarningsSent'],
+          "EntryDate": item['EntryDate'],
+          "RollNumber": item['RollNumber'],
+          "SessionID": item['SessionID'],
+          "CourseID": item['CourseID'],
+          "Semester": item['Semester'],
+          "StudentType": item['StudentType'],
+          "SectionID": item['SectionID'],
+        }).toList();
+      } else {
+        throw Exception('Failed to load attendance details');
+      }
+    } catch (e) {
+      print('Error fetching attendance details: $e');
+      throw e; // Rethrow the error for handling in the UI
     }
   }
 }

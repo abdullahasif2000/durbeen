@@ -32,6 +32,25 @@ class _ModuleScreenState extends State<ModuleScreen> {
   Future<void> _fetchSessions() async {
     try {
       final List<dynamic> data = await ApiService().fetchSessions();
+
+      // Find the session where 'Current' is 1
+      final currentSession = data.firstWhere(
+            (session) => session['Current'] == '1',
+        orElse: () => {'SessionID': '', 'Description': '', 'Current': '0'}, // Return a default map
+      );
+
+      // If a current session is found, set it as the selected session
+      if (currentSession['SessionID'] != '') {
+        setState(() {
+          selectedSession = currentSession['SessionID']; // Use SessionID for selectedSession
+        });
+
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('SessionID', selectedSession ?? ''); // Save the selected session
+        debugPrint('Default selected SessionID: $selectedSession');
+      }
+
+      // Map the session data for the dropdown
       setState(() {
         sessions = data.map((session) {
           return {
@@ -70,7 +89,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
   void _loadUserRole() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? storedRole = prefs.getString('UserRole');  // Get the user role
+    String? storedRole = prefs.getString('User Role');  // Get the user role
     setState(() {
       userRole = storedRole;  // Update the state with the stored role
     });
@@ -116,7 +135,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

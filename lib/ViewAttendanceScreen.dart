@@ -11,13 +11,14 @@ class ViewAttendanceScreen extends StatefulWidget {
 }
 
 class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
-  final TextEditingController _dateController = TextEditingController();
   String? _sessionID;
   String? _courseID;
   String? _sectionID;
   String? _role;
   String? _rollNumber;
   List<Map<String, dynamic>> _attendanceRecords = [];
+  List<String> _attendanceDates = [];
+  String? _selectedDate;
   bool _isLoading = true;
   String _error = '';
 
@@ -52,50 +53,23 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     print('Role: $_role');
     print('RollNumber: $_rollNumber');
 
+    // Fetch attendance dates for all roles
+    await _fetchAttendanceDates();
+    setState(() {
+      _isLoading = false; // Set loading to false after fetching dates
+    });
+
     // Automatically fetch attendance for students
     if (_role == 'Student') {
-      _fetchAttendanceForStudent();
-    } else {
-      setState(() {
-        _isLoading = false; // Only set false if not loading for students
-      });
-    }
-  }
-
-  Future<void> _fetchAttendanceForStudent() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = '';
-      });
-
-      final records = await ApiService().fetchAttendance(
-        _sessionID!,
-        _rollNumber ?? '',
-        _courseID!,
-      );
-
-      setState(() {
-        _attendanceRecords = records;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      _fetchAttendanceRecords(); // Fetch attendance records for the student
     }
   }
 
   Future<void> _fetchAttendanceRecords() async {
-    // Admin and faculty attendance fetching logic
-    if (_sessionID == null || _courseID == null || _sectionID == null || _dateController.text.isEmpty) {
+    // Attendance fetching logic for all roles
+    if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please select a date')),
       );
       return;
     }
@@ -106,15 +80,20 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     });
 
     try {
-      final records = await ApiService().fetchAttendanceRecords(
-        sessionID: _sessionID!,
-        courseID: _courseID!,
-        sectionID: _sectionID!,
-        date: _dateController.text,
+      final records = await ApiService().fetchAttendanceDetails(
+        _sessionID!,
+        _courseID!,
+        _selectedDate!,
       );
 
+      // If the role is Student, filter the records by RollNumber
+      if (_role == 'Student') {
+        _attendanceRecords = records.where((record) => record['RollNumber'] == _rollNumber).toList();
+      } else {
+        _attendanceRecords = records; // For other roles, show all records
+      }
+
       setState(() {
-        _attendanceRecords = records;
         _isLoading = false;
       });
     } catch (e) {
@@ -129,17 +108,23 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null) {
+  Future<void> _fetchAttendanceDates() async {
+    if (_sessionID == null || _courseID == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('SessionID or CourseID is missing')),
+      );
+      return;
+    }
+
+    try {
+      final dates = await ApiService().fetchAttendanceDates(_sessionID!, _courseID!);
       setState(() {
-        _dateController.text = "${picked.toLocal()}".split(' ')[0];
+        _attendanceDates = dates;
       });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching dates: $e')),
+      );
     }
   }
 
@@ -166,23 +151,28 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            if (_role != 'Student') ...[
-              TextField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Enter Date (YYYY-MM-DD)',
-                  border: OutlineInputBorder(),
-                ),
-                onTap: () => _selectDate(context),
-                readOnly: true,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _fetchAttendanceRecords,
-                child: const Text('Fetch Attendance'),
-              ),
-              const SizedBox(height: 20),
-            ],
+            const Text(
+              'Select a Date:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            DropdownButton<String>(
+              hint: const Text('Select Date'),
+              value: _selectedDate,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedDate = newValue;
+                });
+                _fetchAttendanceRecords(); // Fetch attendance for the selected date
+              },
+              items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
+                return DropdownMenuItem<String>(
+                  value: date,
+                  child: Text(date),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             if (_error.isNotEmpty)
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             if (_attendanceRecords.isNotEmpty)
@@ -195,6 +185,8 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                         const DataColumn(label: Text('Roll Number')),
                       const DataColumn(label: Text('Date')),
                       const DataColumn(label: Text('Attendance Status')),
+                      const DataColumn(label: Text('Warnings Sent')),
+                      const DataColumn(label: Text('Entry Date')),
                     ],
                     rows: _attendanceRecords.map((record) {
                       return DataRow(cells: [
@@ -202,6 +194,8 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                           DataCell(Text(record['RollNumber'] ?? '')),
                         DataCell(Text(record['Date'] ?? '')),
                         DataCell(Text(record['AttendanceStatus'] ?? '')),
+                        DataCell(Text(record['WarningsSent'] ?? '')),
+                        DataCell(Text(record['EntryDate'] ?? '')),
                       ]);
                     }).toList(),
                   ),

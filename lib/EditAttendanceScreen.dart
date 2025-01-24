@@ -11,12 +11,13 @@ class EditAttendanceScreen extends StatefulWidget {
 }
 
 class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
-  final TextEditingController _dateController = TextEditingController();
   String? _sessionID;
   String? _courseID;
   String? _sectionID;
   String? _userRole; // Store user role
   List<Map<String, dynamic>> _attendanceRecords = [];
+  List<String> _attendanceDates = []; // List to hold attendance dates
+  String? _selectedDate; // Selected date from dropdown
   bool _isLoading = true;
   String _error = '';
 
@@ -30,7 +31,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _sessionID = prefs.getString('SessionID');
-      _userRole = prefs.getString('User  Role'); // Load user role
+      _userRole = prefs.getString('UserRole'); // Load user role
 
       // Debug statement to print the user role in the console
       print('Loaded User Role: $_userRole');
@@ -46,29 +47,18 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       _sectionID = prefs.getString('SelectedSectionID');
       _isLoading = false;
     });
+
+    // Fetch attendance dates for all roles
+    await _fetchAttendanceDates();
   }
 
   Future<void> _fetchAttendanceRecords() async {
-    if (_sessionID == null || _courseID == null || _sectionID == null || _dateController.text.isEmpty) {
+    // Attendance fetching logic for all roles
+    if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please select a date')),
       );
       return;
-    }
-
-    DateTime selectedDate = DateTime.parse(_dateController.text);
-
-    // Validate date for faculty role
-    if (_userRole == 'Faculty') {
-      DateTime now = DateTime.now();
-      DateTime facultyLimitDate = now.subtract(const Duration(hours: 48));
-
-      if (selectedDate.isBefore(facultyLimitDate)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Faculty can only edit attendance for the last 48 hours')),
-        );
-        return;
-      }
     }
 
     setState(() {
@@ -77,11 +67,10 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     });
 
     try {
-      final records = await ApiService().fetchAttendanceRecords(
-        sessionID: _sessionID!,
-        courseID: _courseID!,
-        sectionID: _sectionID!,
-        date: _dateController.text,
+      final records = await ApiService().fetchAttendanceDetails(
+        _sessionID!,
+        _courseID!,
+        _selectedDate!,
       );
 
       setState(() {
@@ -100,13 +89,33 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     }
   }
 
+  Future<void> _fetchAttendanceDates() async {
+    if (_sessionID == null || _courseID == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('SessionID or CourseID is missing')),
+      );
+      return;
+    }
+
+    try {
+      final dates = await ApiService().fetchAttendanceDates(_sessionID!, _courseID!);
+      setState(() {
+        _attendanceDates = dates;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching dates: $e')),
+      );
+    }
+  }
+
   Future<void> _updateAttendanceStatus(String rollNumber, String newStatus) async {
     try {
       await ApiService().updateAttendanceStatus(
         sessionID: _sessionID!,
         courseID: _courseID!,
         sectionID: _sectionID!,
-        date: _dateController.text,
+        date: _selectedDate!,
         rollNumber: rollNumber,
         attendanceStatus: newStatus,
       );
@@ -144,45 +153,26 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _dateController,
-              decoration: const InputDecoration(
-                labelText: 'Enter Date (YYYY-MM-DD)',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.datetime,
-              onTap: () async {
-                DateTime now = DateTime.now();
-                DateTime firstDate;
-
-                if (_userRole == 'Faculty') {
-                  firstDate = now.subtract(const Duration(hours: 48));
-                } else {
-                  firstDate = DateTime(2000);
-                }
-
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: now,
-                  firstDate: firstDate,
-                  lastDate: now,
-                );
-
-                if (picked != null) {
-                  setState(() {
-                    _dateController.text = "${picked.toLocal()}".split(' ')[0];
-                  });
-                }
-              },
-              readOnly: true,
+            const Text(
+              'Select a Date:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _fetchAttendanceRecords,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[700],
-              ),
-              child: const Text('Fetch Attendance'),
+            const SizedBox(height: 10),
+            DropdownButton<String>(
+              hint: const Text('Select Date'),
+              value: _selectedDate,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedDate = newValue;
+                });
+                _fetchAttendanceRecords(); // Fetch attendance for the selected date
+              },
+              items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
+                return DropdownMenuItem<String>(
+                  value: date,
+                  child: Text(date),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 20),
             if (_error.isNotEmpty)

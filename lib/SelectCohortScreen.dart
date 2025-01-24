@@ -301,4 +301,3 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
     );
   }
 }
-
