@@ -23,7 +23,9 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   List<String> sectionIDs = [];
   List<String> courseIDs = [];
   String? sessionID;
-  bool isStudentMapped = false; // Flag to enable/disable the "View Mapped Students" button
+  bool isStudentMapped = false;// Flag to enable/disable the "View Mapped Students" button
+  bool isLoading = false;
+
 
   @override
   void initState() {
@@ -141,6 +143,10 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       return;
     }
 
+    setState(() {
+      isLoading = true; // Start loading
+    });
+
     try {
       for (String rollNumber in selectedRollNumbers) {
         for (int i = 0; i < sectionIDs.length; i++) {
@@ -164,8 +170,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(
-            'Selected students mapped to all sections successfully!')),
+        SnackBar(content: Text('Selected students mapped to all sections successfully!')),
       );
 
       // Enable the "View Mapped Students" button
@@ -180,6 +185,10 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error mapping students to sections.')),
       );
+    } finally {
+      setState(() {
+        isLoading = false; // End loading
+      });
     }
   }
 
@@ -281,12 +290,16 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: selectedRollNumbers.isEmpty
+                onPressed: selectedRollNumbers.isEmpty || isLoading
                     ? null
                     : () async {
                   await _mapStudentsToSections();
                 },
-                child: Text('Map Selected Students to All Sections'),
+                child: isLoading
+                    ? CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                )
+                    : Text('Map Selected Students to All Sections'),
               ),
               SizedBox(height: 20),
               Text(

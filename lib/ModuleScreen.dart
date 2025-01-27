@@ -89,7 +89,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
   void _loadUserRole() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? storedRole = prefs.getString('User Role');  // Get the user role
+    String? storedRole = prefs.getString('User  Role');  // Get the user role
     setState(() {
       userRole = storedRole;  // Update the state with the stored role
     });
@@ -181,8 +181,17 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 color: Colors.orange, // The color of the header area
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Center the logo image
+                  Center(
+                    child: Image.asset(
+                      'assets/images/CampusConnect largeWhite.png',
+                      height: 100, // Adjust height as needed
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   // Display the user role directly in the header area
                   if (userRole != null)
                     Text(

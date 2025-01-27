@@ -40,15 +40,21 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
         if (_selectedCohort != null) {
           _coursesFuture = fetchCourses(_selectedCohort!); // Fetch courses for the pre-selected cohort
         }
+      } else if (_role == 'Faculty') {
+        // For Faculty, directly fetch courses without cohort
+        _coursesFuture = fetchFacultyCourses();
       }
     });
   }
 
   Future<List<String>> fetchCohorts() async {
     try {
+      debugPrint('Fetching cohorts from API...');
       final response = await ApiService().fetchCohorts();
+      debugPrint('Cohorts fetched successfully: ${response.toString()}');
       return response.map<String>((cohort) => cohort['cohort'].toString()).toList();
     } catch (e) {
+      debugPrint('Error fetching cohorts: $e');
       throw Exception("Failed to load cohorts: $e");
     }
   }
@@ -56,20 +62,50 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final rollNumber = prefs.getString('RollNumber') ?? '';
-      final sessionID = prefs.getString('SessionID') ?? '';
+      final sessionID = prefs.getString('SessionID') ?? ''; // Ensure sessionID is not null
+      if (sessionID.isEmpty) {
+        throw Exception("SessionID is required but not found.");
+      }
+
+      debugPrint('Fetching courses for cohort: $cohort with SessionID: $sessionID');
 
       if (_role == 'Student') {
-        return await ApiService().fetchStudentCourses(sessionID, rollNumber);
-      } else if (_role == 'Faculty') {
-        final courses = await ApiService().fetchCourses(cohort);
-        final facultyID = prefs.getString('FacultyID') ?? '';
-        return courses.where((course) => course['FacultyID'].toString() == facultyID).toList();
+        final rollNumber = prefs.getString('RollNumber') ?? '';
+        if (rollNumber.isEmpty) {
+          throw Exception("RollNumber is required but not found.");
+        }
+        final response = await ApiService().fetchStudentCourses(sessionID, rollNumber);
+        debugPrint('Courses fetched for student: ${response.toString()}');
+        return response;
+      } else if (_role == 'Admin') {
+        // Pass SessionID along with cohort for Admin
+        final response = await ApiService().fetchCourses(cohort, sessionID);
+        debugPrint('Courses fetched for admin: ${response.toString()}');
+        return response;
       } else {
-        return await ApiService().fetchCourses(cohort);
+        throw Exception('Invalid role');
       }
     } catch (e) {
+      debugPrint('Error fetching courses: $e');
       throw Exception("Failed to load courses: $e");
+    }
+  }
+
+
+  Future<List<Map<String, dynamic>>> fetchFacultyCourses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionID = prefs.getString('SessionID') ?? '';
+      final facultyID = prefs.getString('FacultyID') ?? '';
+
+      debugPrint('Fetching faculty courses with FacultyID: $facultyID and SessionID: $sessionID');
+
+      final response = await ApiService().fetchFacultyCourses(facultyID, sessionID);
+      debugPrint('Faculty courses fetched successfully: ${response.toString()}');
+      return response;
+    } catch (e) {
+      debugPrint('Error fetching faculty courses: $e');
+      throw Exception("Failed to load faculty courses: $e");
     }
   }
 
@@ -99,43 +135,43 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            FutureBuilder<List<String>>(
-              future: _cohortsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (snapshot.hasData && snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No cohorts available'));
-                }
+            // For Admin, show the cohort dropdown
+            if (_role == 'Admin')
+              FutureBuilder<List<String>>(
+                future: _cohortsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (snapshot.hasData && snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No cohorts available'));
+                  }
 
-                final cohorts = snapshot.data!;
-                return DropdownButton<String>(
-                  value: _selectedCohort,
-                  hint: const Text(
-                    'Choose Cohort',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  items: cohorts.map((cohort) {
-                    return DropdownMenuItem<String>(
-                      value: cohort,
-                      child: Text(cohort),
-                    );
-                  }).toList(),
-                  onChanged: _role == 'Student'
-                      ? null // Disable dropdown for students
-                      : (value) {
-                    setState(() {
-                      _selectedCohort = value;
-                      _coursesFuture = fetchCourses(value!);
-                    });
-                  },
-                );
-              },
-            ),
+                  final cohorts = snapshot.data!;
+                  return DropdownButton<String>(
+                    value: _selectedCohort,
+                    hint: const Text(
+                      'Choose Cohort',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    items: cohorts.map((cohort) {
+                      return DropdownMenuItem<String>(
+                        value: cohort,
+                        child: Text(cohort),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCohort = value;
+                        _coursesFuture = fetchCourses(value!);
+                      });
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: 20),
-            if (_selectedCohort != null)
+            if (_selectedCohort != null || _role == 'Faculty')
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
                   future: _coursesFuture,
@@ -145,12 +181,11 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                     } else if (snapshot.hasError) {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text('No courses available for this cohort.'));
+                      return const Center(child: Text('No courses available.'));
                     }
 
                     final courses = snapshot.data!;
-                    return _role == 'Student'
-                        ? DataTable2(
+                    return DataTable2(
                       headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
                       headingTextStyle: const TextStyle(
                         color: Colors.white,
@@ -160,13 +195,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                       horizontalMargin: 5,
                       minWidth: 700,
                       border: TableBorder.all(color: Colors.grey[300]!, width: 1),
-                      columns: const [
-                        DataColumn(label: Text('Sr. No')),
-                        DataColumn(label: Text('Course ID')),
-                        DataColumn(label: Text('Course Code')),
-                        DataColumn(label: Text('Course Name')),
-                        DataColumn(label: Text('Credits')),
-                      ],
+                      columns: _getColumnsBasedOnRole(),
                       rows: List.generate(
                         courses.length,
                             (index) {
@@ -179,73 +208,27 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                                 ? null // Disable selection if source is 'Courses'
                                 : (value) {
                               setState(() {
-                                if (value == true) {
-                                  if (!_selectedCourses.contains(course)) {
-                                    _selectedCourses.add(course);
+                                if (widget.source == 'Attendance') {
+                                  // For Attendance, allow only single selection
+                                  if (value == true) {
+                                    _selectedCourses.clear(); // Clear previous selections
+                                    _selectedCourses.add(course); // Add the newly selected course
+                                  } else {
+                                    _selectedCourses.remove(course); // Deselect if unchecked
                                   }
                                 } else {
-                                  _selectedCourses.remove(course);
+                                  // For other sources, allow multiple selections
+                                  if (value == true) {
+                                    if (!_selectedCourses.contains(course)) {
+                                      _selectedCourses.add(course);
+                                    }
+                                  } else {
+                                    _selectedCourses.remove(course);
+                                  }
                                 }
                               });
                             },
-                            cells: [
-                              DataCell(Text('${index + 1}')),
-                              DataCell(Text(course['CourseID'].toString())),
-                              DataCell(Text(course['CCNew'])),
-                              DataCell(Text(course['Name'])),
-                              DataCell(Text(course['CreditHours']?.toString() ?? 'N/A')),
-                            ],
-                          );
-                        },
-                      ),
-                    )
-                        : DataTable2(
-                      headingRowColor: MaterialStateProperty.all(Colors.grey[700]),
-                      headingTextStyle: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      columnSpacing: 1,
-                      horizontalMargin: 5,
-                      minWidth: 700,
-                      border: TableBorder.all(color: Colors.grey[300]!, width: 1),
-                      columns: const [
-                        DataColumn(label: Text('Sr. No')),
-                        DataColumn(label: Text('Course ID')),
-                        DataColumn(label: Text('Course Name')),
-                        DataColumn(label: Text('Faculty Name')),
-                        DataColumn(label: Text('Faculty ID')),
-                        DataColumn(label: Text('Session ID')),
-                      ],
-                      rows: List.generate(
-                        courses.length,
-                            (index) {
-                          final course = courses[index];
-                          final isSelected = _selectedCourses.contains(course);
-
-                          return DataRow(
-                            selected: isSelected,
-                            onSelectChanged: widget.source == 'Courses'
-                                ? null // Disable selection if source is 'Courses'
-                                : (value) {
-                              setState(() {
-                                if (value == true) {
-                                  if (!_selectedCourses.contains(course)) {
-                                    _selectedCourses.add(course);
-                                  }
-                                } else {
-                                  _selectedCourses.remove(course);
-                                }
-                              });
-                            },
-                            cells: [
-                              DataCell(Text('${index + 1}')),
-                              DataCell(Text(course['CourseID'].toString())),
-                              DataCell(Text(course['Name'])),
-                              DataCell(Text(course['FacultyName'])),
-                              DataCell(Text(course['FacultyID'].toString())),
-                              DataCell(Text(course['SessionID'].toString())),
-                            ],
+                            cells: _getRowCells(course, index + 1),
                           );
                         },
                       ),
@@ -294,10 +277,75 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                   ),
                 ),
               ),
-
           ],
         ),
       ),
     );
+  }
+
+  List<DataColumn> _getColumnsBasedOnRole() {
+    if (_role == 'Admin') {
+      return const [
+        DataColumn(label: Text('Sr. No')),
+        DataColumn(label: Text('Course ID')),
+        DataColumn(label: Text('Course Name')),
+        DataColumn(label: Text('Faculty Name')),
+        DataColumn(label: Text('Session ID')),
+        DataColumn(label: Text('Description')),
+      ];
+    } else if (_role == 'Faculty') {
+      return const [
+        DataColumn(label: Text('Sr. No')),
+        DataColumn(label: Text('Course ID')),
+        DataColumn(label: Text('Course Code')),
+        DataColumn(label: Text('Course Name')),
+        DataColumn(label: Text('Short Code')),
+        DataColumn(label: Text('Session ID')),
+      ];
+    } else if (_role == 'Student') {
+      return const [
+        DataColumn(label: Text('Sr. No')),
+        DataColumn(label: Text('Course ID')),
+        DataColumn(label: Text('Old Code')),
+        DataColumn(label: Text('New Code')),
+        DataColumn(label: Text('Course Name')),
+        DataColumn(label: Text('Short Code')),
+        DataColumn(label: Text('Credit Hours')),
+      ];
+    }
+    return [];
+  }
+
+  List<DataCell> _getRowCells(Map<String, dynamic> course, int serialNumber) {
+    if (_role == 'Admin') {
+      return [
+        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
+        DataCell(Text(course['Name'] ?? 'N/A')),
+        DataCell(Text(course['FacultyName'] ?? 'N/A')),
+        DataCell(Text(course['SessionID']?.toString() ?? 'N/A')),
+        DataCell(Text(course['Description'] ?? 'N/A')),
+      ];
+    } else if (_role == 'Faculty') {
+      return [
+        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
+        DataCell(Text(course['CCNew'] ?? 'N/A')),
+        DataCell(Text(course['Name'] ?? 'N/A')),
+        DataCell(Text(course['ShortCode'] ?? 'N/A')),
+        DataCell(Text(course['SessionID']?.toString() ?? 'N/A')),
+      ];
+    } else if (_role == 'Student') {
+      return [
+        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
+        DataCell(Text(course['CCOld'] ?? 'N/A')),
+        DataCell(Text(course['CCNew'] ?? 'N/A')),
+        DataCell(Text(course['Name'] ?? 'N/A')),
+        DataCell(Text(course['ShortCode'] ?? 'N/A')),
+        DataCell(Text(course['CreditHours']?.toString() ?? 'N/A')),
+      ];
+    }
+    return [];
   }
 }

@@ -39,7 +39,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       String? courseIDsString = prefs.getString('CourseIDs');
       if (courseIDsString != null) {
         List<dynamic> courseIDsList = jsonDecode(courseIDsString);
-        _courseID = courseIDsList.isNotEmpty ? courseIDsList[0].toString() : null;
+        _courseID =
+        courseIDsList.isNotEmpty ? courseIDsList[0].toString() : null;
       } else {
         _courseID = null;
       }
@@ -54,7 +55,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
 
   Future<void> _fetchAttendanceRecords() async {
     // Attendance fetching logic for all roles
-    if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
+    if (_sessionID == null || _courseID == null || _sectionID == null ||
+        _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a date')),
       );
@@ -71,6 +73,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         _sessionID!,
         _courseID!,
         _selectedDate!,
+        _sectionID!,
       );
 
       setState(() {
@@ -98,7 +101,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     }
 
     try {
-      final dates = await ApiService().fetchAttendanceDates(_sessionID!, _courseID!);
+      final dates = await ApiService().fetchAttendanceDates(
+          _sessionID!, _courseID!);
       setState(() {
         _attendanceDates = dates;
       });
@@ -109,7 +113,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     }
   }
 
-  Future<void> _updateAttendanceStatus(String rollNumber, String newStatus) async {
+  Future<void> _updateAttendanceStatus(String rollNumber,
+      String newStatus) async {
     try {
       await ApiService().updateAttendanceStatus(
         sessionID: _sessionID!,
@@ -167,7 +172,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                 });
                 _fetchAttendanceRecords(); // Fetch attendance for the selected date
               },
-              items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
+              items: _attendanceDates.map<DropdownMenuItem<String>>((
+                  String date) {
                 return DropdownMenuItem<String>(
                   value: date,
                   child: Text(date),
@@ -180,58 +186,72 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
             if (_attendanceRecords.isNotEmpty)
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Roll Number')),
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Present')),
-                      DataColumn(label: Text('Absent')),
-                      DataColumn(label: Text('Late')),
-                    ],
-                    rows: _attendanceRecords.map((record) {
-                      String rollNumber = record['RollNumber'] ?? '';
-                      String attendanceStatus = record['AttendanceStatus'] ?? '';
+                  scrollDirection: Axis.vertical, // Enable vertical scrolling
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    // Enable horizontal scrolling
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Roll Number')),
+                        DataColumn(label: Text('Date')),
+                        DataColumn(label: Text('Present')),
+                        DataColumn(label: Text('Absent')),
+                        DataColumn(label: Text('Late')),
+                      ],
+                      rows: _attendanceRecords.map((record) {
+                        String rollNumber = record['RollNumber'] ?? '';
+                        String attendanceStatus = record['AttendanceStatus'] ??
+                            '';
 
-                      bool isPresent = attendanceStatus == 'present';
-                      bool isAbsent = attendanceStatus == 'absent';
-                      bool isLate = attendanceStatus == 'late';
+                        bool isPresent = attendanceStatus == 'present';
+                        bool isAbsent = attendanceStatus == 'absent';
+                        bool isLate = attendanceStatus == 'late';
 
-                      return DataRow(cells: [
-                        DataCell(Text(rollNumber)),
-                        DataCell(Text(record['Date'] ?? '')),
-                        DataCell(
-                          Checkbox(
-                            value: isPresent,
-                            onChanged: (value) {
-                              if (value != null) {
-                                _updateAttendanceStatus(rollNumber, value ? 'present' : (isAbsent ? 'absent' : 'late'));
-                              }
-                            },
+                        return DataRow(cells: [
+                          DataCell(Text(rollNumber)),
+                          DataCell(Text(record['Date'] ?? '')),
+                          DataCell(
+                            Checkbox(
+                              value: isPresent,
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _updateAttendanceStatus(rollNumber,
+                                      value ? 'present' : (isAbsent
+                                          ? 'absent'
+                                          : 'late'));
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                        DataCell(
-                          Checkbox(
-                            value: isAbsent,
-                            onChanged: (value) {
-                              if (value != null) {
-                                _updateAttendanceStatus(rollNumber, value ? 'absent' : (isPresent ? 'present' : 'late'));
-                              }
-                            },
+                          DataCell(
+                            Checkbox(
+                              value: isAbsent,
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _updateAttendanceStatus(rollNumber,
+                                      value ? 'absent' : (isPresent
+                                          ? 'present'
+                                          : 'late'));
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                        DataCell(
-                          Checkbox(
-                            value: isLate,
-                            onChanged: (value) {
-                              if (value != null) {
-                                _updateAttendanceStatus(rollNumber, value ? 'late' : (isPresent ? 'present' : 'absent'));
-                              }
-                            },
+                          DataCell(
+                            Checkbox(
+                              value: isLate,
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _updateAttendanceStatus(rollNumber,
+                                      value ? 'late' : (isPresent
+                                          ? 'present'
+                                          : 'absent'));
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                      ]);
-                    }).toList(),
+                        ]);
+                      }).toList(),
+                    ),
                   ),
                 ),
               ),

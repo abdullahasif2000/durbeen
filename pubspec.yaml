@@ -34,6 +34,7 @@ flutter:
     - assets/images/CampusConnect large(1).png
     - assets/images/CampusConnectsmall.png
     - assets/images/CampusConnectmedium.png
+    - assets/images/CampusConnect largeWhite.png
 
 flutter_launcher_icons:
   android: true

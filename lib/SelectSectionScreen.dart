@@ -21,10 +21,10 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
   @override
   void initState() {
     super.initState();
-    _sectionsFuture = _fetchSections();
+    _sectionsFuture = _fetchSectionsWithStudentCounts();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSections() async {
+  Future<List<Map<String, dynamic>>> _fetchSectionsWithStudentCounts() async {
     final prefs = await SharedPreferences.getInstance();
     final sessionId = prefs.getString('SessionID');
     final courseIdsString = prefs.getString('CourseIDs');
@@ -41,10 +41,30 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
         sessionID: sessionId,
         courseID: courseId.toString(),
       );
+
+      for (var section in sections) {
+        // Fetch total students for each section
+        final totalStudents = await _fetchTotalStudents(
+          sessionId,
+          courseId.toString(),
+          section['id'].toString(),
+        );
+        section['totalStudents'] = totalStudents; // Add total students to section map
+      }
+
       allSections.addAll(sections);
     }
 
     return allSections;
+  }
+
+  Future<int> _fetchTotalStudents(String sessionId, String courseId, String sectionId) async {
+    final students = await ApiService().fetchMappedStudents(
+      SessionID: sessionId,
+      CourseID: courseId,
+      SectionID: sectionId,
+    );
+    return students.length; // Return the total number of students
   }
 
   @override
@@ -81,63 +101,68 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
               itemBuilder: (context, index) {
                 final section = sections[index];
 
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Section ID: ${section['id'] ?? 'N/A'}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Course ID: ${section['CourseID'] ?? 'N/A'}'),
-                            Text('Section Name: ${section['SectionName'] ?? 'N/A'}'),
-                            Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.calendar_month, color: Colors.orange, size: 30),
-                          onPressed: () async {
-                            // Save SectionID to SharedPreferences
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('SelectedSectionID', section['id'].toString());
+                return GestureDetector(
+                  onTap: () async {
+                    // Save SectionID to SharedPreferences
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('SelectedSectionID', section['id'].toString());
 
-                            // Print the saved SectionID to console
-                            print('Selected SectionID: ${section['id']}');
+                    // Print the saved SectionID to console
+                    print('Selected SectionID: ${section['id']}');
 
-                            // Navigate to the appropriate screen based on the option
-                            if (widget.option == 'Mark') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AttendanceScreen(),
-                                ),
-                              );
-                            } else if (widget.option == 'View') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ViewAttendanceScreen(),
-                                ),
-                              );
-                            } else if (widget.option == 'Edit') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const EditAttendanceScreen(),
-                                ),
-                              );
-                            }
-                          },
+                    // Navigate to the appropriate screen based on the option
+                    if (widget.option == 'Mark') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AttendanceScreen(),
                         ),
-                      ],
+                      );
+                    } else if (widget.option == 'View') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ViewAttendanceScreen(),
+                        ),
+                      );
+                    } else if (widget.option == 'Edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditAttendanceScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  child: Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Display Section Name in bold
+                              Text(
+                                section['SectionName'] ?? 'N/A',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              const SizedBox(height: 8),
+                              Text('CourseID: ${section['CourseID'] ?? 'N/A'}'),
+                              Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
+                              Text('Total Students: ${section['totalStudents'] ?? 0}'),
+                            ],
+                          ),
+                          const Icon(
+                            Icons.calendar_month,
+                            color: Colors.orange,
+                            size: 30,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

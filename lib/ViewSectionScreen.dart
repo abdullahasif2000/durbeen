@@ -30,12 +30,16 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
       courseIDs = List<String>.from(jsonDecode(courseIDsString));
     }
 
+    debugPrint("SessionID loaded: $sessionID");
+    debugPrint("CourseIDs loaded: $courseIDs");
+
     // Fetch sections after loading data
     if (sessionID.isNotEmpty && courseIDs.isNotEmpty) {
       setState(() {
         _sectionsFuture = fetchSections();
       });
     } else {
+      debugPrint("No SessionID or CourseIDs available to fetch sections.");
       setState(() {
         _sectionsFuture = Future.value([]);
       });
@@ -47,12 +51,25 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     List<Map<String, dynamic>> sections = [];
     try {
       for (String courseID in courseIDs) {
+        debugPrint("Fetching sections for CourseID: $courseID, SessionID: $sessionID");
         final response = await ApiService().fetchSections(
           courseID: courseID,
           sessionID: sessionID,
         );
         if (response != null && response.isNotEmpty) {
+          for (var section in response) {
+            final sectionID = section['id'];
+            // Fetch the number of students in the section
+            final students = await ApiService().fetchMappedStudents(
+              SessionID: sessionID,
+              CourseID: courseID,
+              SectionID: sectionID,
+            );
+            section['studentCount'] = students.length; // Add student count to the section
+          }
           sections.addAll(response);
+        } else {
+          debugPrint("No sections found for CourseID $courseID.");
         }
       }
     } catch (e) {
@@ -65,13 +82,17 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
   // Delete section from the API
   Future<void> deleteSection(String sectionID) async {
     try {
+      debugPrint("Attempting to delete section with ID: $sectionID");
       final response = await ApiService().deleteSection(sectionID);
+      debugPrint("Delete response: $response");
+
       if (response['status'] == 'success') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Section deleted successfully')),
         );
         _loadData(); // Refresh the list after deletion
       } else {
+        debugPrint("Failed to delete section. Response: $response");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to delete section')),
         );
@@ -135,12 +156,16 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
+              debugPrint("Error in FutureBuilder: ${snapshot.error}");
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              debugPrint("No sections found.");
               return const Center(child: Text('No sections found.'));
             }
 
             final sections = snapshot.data!;
+
+            debugPrint("Sections to display: $sections");
 
             return ListView.builder(
               itemCount: sections.length,
@@ -162,6 +187,7 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
                       children: [
                         Text('Section ID: ${section['id']}'),
                         Text('Course ID: ${section['CourseID']}'),
+                        Text('Total Students: ${section['studentCount']}'), // Display total students
                       ],
                     ),
                     trailing: IconButton(

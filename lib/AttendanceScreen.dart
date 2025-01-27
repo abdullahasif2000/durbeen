@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +16,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<Map<String, dynamic>> attendanceData = [];
   DateTime? _selectedDate;
   bool _isAttendanceMarked = false;
+  bool isLoading=false;
 
   @override
   void initState() {
@@ -42,11 +42,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       throw Exception("CourseIDs list is empty.");
     }
 
-    return await ApiService().fetchMappedStudents(
+    final students = await ApiService().fetchMappedStudents(
       SessionID: sessionID,
       CourseID: parsedCourseIDs.first.toString(),
       SectionID: sectionID,
     );
+
+    // Initialize attendanceData with all students as present
+    attendanceData = students.map((student) {
+      return {
+        'RollNumber': student['RollNumber'],
+        'AttendanceStatus': 'present', // Default status
+      };
+    }).toList();
+
+    return students;
   }
 
   Future<void> _checkAttendanceMarked() async {
@@ -79,42 +89,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         _isAttendanceMarked = isMarked;
       });
 
-      if (_isAttendanceMarked) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Attendance Status'),
-            content: Text('Attendance has already been marked for the selected date.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Notify user that attendance is not marked
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Attendance Status'),
-            content: Text('No attendance records found for the selected date.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
     } catch (e) {
       print('Error checking attendance: $e');
-
     }
   }
-
 
   void _updateAttendance(String rollNumber, String status) {
     if (_isAttendanceMarked) return; // Prevent updates if attendance is marked
@@ -126,9 +104,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     entry['RollNumber'] == rollNumber);
 
     if (index == -1) {
-      attendanceData.add(
-          {'RollNumber': rollNumber, 'AttendanceStatus': status});
+      // If the student is not in attendanceData, add them with the selected status
+      attendanceData.add({
+        'RollNumber': rollNumber,
+        'AttendanceStatus': status,
+      });
     } else {
+      // Update the attendance status
       attendanceData[index]['AttendanceStatus'] = status;
     }
 
@@ -138,12 +120,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Future<void> _submitAttendance() async {
     try {
       if (_selectedDate == null) {
-        print('Error: Please select a date.');
+        _showErrorDialog('Error: Please select a date.');
         return;
       }
 
       if (_isAttendanceMarked) {
-        print('Error: Attendance has already been marked for this date.');
+        _showErrorDialog('Error: Attendance has already been marked for this date.');
         return;
       }
 
@@ -154,13 +136,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final parsedCourseIDs = jsonDecode(courseID) as List;
 
       if (sessionID == null || parsedCourseIDs.isEmpty || sectionID == null || attendanceData.isEmpty) {
-        print('Error: Missing required data for submission.');
+        _showErrorDialog('Error: Missing required data for submission.');
         return;
       }
 
-      setState(() {
-        _isAttendanceMarked = true;
-      });
+      // Show loading dialog
+      final loadingDialog = AlertDialog(
+        content: Row(
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("Submitting attendance..."),
+          ],
+        ),
+      );
+
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing the dialog by tapping outside
+        builder: (BuildContext context) {
+          return loadingDialog;
+        },
+      );
 
       bool allSuccess = true;
       for (final entry in attendanceData) {
@@ -178,6 +175,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         }
       }
 
+      Navigator.of(context).pop(); // Dismiss the loading dialog
+
       if (allSuccess) {
         setState(() {
           // Retain attendanceData to show statuses but keep interaction disabled
@@ -186,21 +185,56 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         print('All attendance records successfully submitted.');
 
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Attendance submitted successfully!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        _showSuccessDialog('Attendance submitted successfully!');
       } else {
         print('Some attendance records failed to submit.');
+        _showErrorDialog('Some attendance records failed to submit.');
       }
     } catch (e) {
       print('Error while submitting attendance: $e');
+      _showErrorDialog('Error while submitting attendance: $e');
     }
   }
 
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Success'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final twoDaysAgo = now.subtract(const Duration(hours: 48));
@@ -269,66 +303,72 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Roll Number')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Present')),
-                      DataColumn(label: Text('Absent')),
-                      DataColumn(label: Text('Late')),
-                    ],
-                    rows: students.map((student) {
-                      final rollNumber = student['RollNumber'] ?? 'N/A';
-                      final rowColor = _getRowColor(rollNumber);
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columnSpacing: 8.0, // Adjust spacing between columns
+                      dataRowHeight: 40.0, // Adjust height of each row
+                      columns: [
+                        DataColumn(label: Container(width: 80, child: const Text('Roll Number', style: TextStyle(fontSize: 14)))),
+                        DataColumn(label: Container(width: 120, child: const Text('Name', style: TextStyle(fontSize: 14)))),
+                        DataColumn(label: Container(width: 60, child: const Text('Present', style: TextStyle(fontSize: 14)))),
+                        DataColumn(label: Container(width: 60, child: const Text('Absent', style: TextStyle(fontSize: 14)))),
+                        DataColumn(label: Container(width: 60, child: const Text('Late', style: TextStyle(fontSize: 14)))),
+                      ],
+                      rows: students.map((student) {
+                        final rollNumber = student['RollNumber'] ?? 'N/A';
+                        final rowColor = _getRowColor(rollNumber);
 
-                      return DataRow(
-                        color: WidgetStateProperty.resolveWith((states) => rowColor),
-                        cells: [
-                          DataCell(Text(rollNumber)),
-                          DataCell(Text(student['Name'] ?? 'N/A')),
-                          DataCell(
-                            Checkbox(
-                              value: _isMarked(rollNumber, 'present'),
-                              onChanged: _isAttendanceMarked
-                                  ? null // Disable if attendance is marked
-                                  : (value) {
-                                if (value == true) {
-                                  _updateAttendance(rollNumber, 'present');
-                                }
-                              },
+                        return DataRow(
+                          color: MaterialStateProperty.resolveWith((states) => rowColor),
+                          cells: [
+                            DataCell(Text(rollNumber, style: const TextStyle(fontSize: 14))),
+                            DataCell(Text(student['Name'] ?? 'N/A', style: const TextStyle(fontSize: 14))),
+                            DataCell(
+                              Checkbox(
+                                value: _isMarked(rollNumber, 'present'),
+                                onChanged: _isAttendanceMarked
+                                    ? null // Disable if attendance is marked
+                                    : (value) {
+                                  if (value == true) {
+                                    _updateAttendance(rollNumber, 'present');
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                          DataCell(
-                            Checkbox(
-                              value: _isMarked(rollNumber, 'absent'),
-                              onChanged: _isAttendanceMarked
-                                  ? null // Disable if attendance is marked
-                                  : (value) {
-                                if (value == true) {
-                                  _updateAttendance(rollNumber, 'absent');
-                                }
-                              },
+                            DataCell(
+                              Checkbox(
+                                value: _isMarked(rollNumber, 'absent'),
+                                onChanged: _isAttendanceMarked
+                                    ? null // Disable if attendance is marked
+                                    : (value) {
+                                  if (value == true) {
+                                    _updateAttendance(rollNumber, 'absent');
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                          DataCell(
-                            Checkbox(
-                              value: _isMarked(rollNumber, 'late'),
-                              onChanged: _isAttendanceMarked
-                                  ? null // Disable if attendance is marked
-                                  : (value) {
-                                if (value == true) {
-                                  _updateAttendance(rollNumber, 'late');
-                                }
-                              },
+                            DataCell(
+                              Checkbox(
+                                value: _isMarked(rollNumber, 'late'),
+                                onChanged: _isAttendanceMarked
+                                    ? null // Disable if attendance is marked
+                                    : (value) {
+                                  if (value == true) {
+                                    _updateAttendance(rollNumber, 'late');
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ),
+
               ElevatedButton(
                 onPressed: _isAttendanceMarked ? null : _submitAttendance,
                 style: ElevatedButton.styleFrom(
@@ -347,6 +387,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
     );
   }
+
   Color _getRowColor(String rollNumber) {
     final index = attendanceData.indexWhere((entry) =>
     entry['RollNumber'] == rollNumber);
@@ -373,7 +414,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (index != -1) {
       return attendanceData[index]['AttendanceStatus'] == status;
     }
-    return false;
+    return status == 'present'; // By default, "Present" is selected
   }
 }
-

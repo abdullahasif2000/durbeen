@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
 class ApiService {
-  static const String baseUrl = "https://results.gece.edu.pk/geceapi";
+  static const String baseUrl = "https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0";
   final String apiKey = "z8p3JuLm6V7c9vwXG9K8TrVt5KqXxA5RfjNVu2WnNAs";
 
   // Combine email, role, and secret key to make hashed key
@@ -103,9 +103,9 @@ class ApiService {
     }
   }
 
-  /// Fetches courses based on cohort
-  Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
-    final url = "$baseUrl/fetch_offered_coursesN.php?cohort=$cohort";
+  /// Fetches courses based on cohort and SessionID
+  Future<List<Map<String, dynamic>>> fetchCourses(String cohort, String sessionId) async {
+    final url = "$baseUrl/fetch_offered_coursesN.php?cohort=$cohort&SessionID=$sessionId";
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -120,20 +120,19 @@ class ApiService {
         if (decodedJson is List) {
           return List<Map<String, dynamic>>.from(decodedJson);
         } else {
-          print(
-              "Unexpected JSON structure. Expected a List, got: $decodedJson");
+          print("Unexpected JSON structure. Expected a List, got: $decodedJson");
           throw Exception("Unexpected response format");
         }
       } else {
         print("Failed to fetch courses. Status code: ${response.statusCode}");
-        throw Exception(
-            "Failed to fetch courses. Status Code: ${response.statusCode}");
+        throw Exception("Failed to fetch courses. Status Code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching courses for cohort $cohort: $e");
+      print("Error fetching courses for cohort $cohort with SessionID $sessionId: $e");
       throw Exception("Error fetching courses: $e");
     }
   }
+
 
   /// Fetches students based on cohort
   Future<List<Map<String, dynamic>>> fetchStudentsByCohort(
@@ -234,7 +233,7 @@ class ApiService {
     required String sessionID,
   }) async {
     final url =
-        'https://results.gece.edu.pk/geceapi/fetch_sectionsN.php?CourseID=$courseID&SessionID=$sessionID';
+        '$baseUrl/fetch_sectionsN.php?CourseID=$courseID&SessionID=$sessionID';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
@@ -321,7 +320,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://results.gece.edu.pk/geceapi/fetch_section_studentsN.php'
+          '$baseUrl/fetch_section_studentsN.php'
               '?SessionID=$SessionID&CourseID=$CourseID&SectionID=$SectionID',
         ),
         headers: {'Content-Type': 'application/json'},
@@ -342,7 +341,7 @@ class ApiService {
       throw Exception('An error occurred while fetching mapped students');
     }
   }
-// Remove student from section API
+/// Remove student from section API
   Future<bool> removeStudentFromSection({
     required String rollNumber,
     required String sessionID,
@@ -354,7 +353,7 @@ class ApiService {
     print('API Request to: $url');
 
     try {
-      final response = await http.get(url);  // Use GET instead of POST
+      final response = await http.get(url);
 
       print('Response Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
@@ -378,7 +377,7 @@ class ApiService {
       return false;
     }
   }
-  // Method to mark attendance
+  /// Method to mark attendance
   Future<bool> markAttendance({
     required String rollNumber,
     required String courseID,
@@ -425,7 +424,7 @@ class ApiService {
       throw Exception('Error marking attendance: $e');
     }
   }
-// Method to check if attendance is already marked
+/// Method to check if attendance is already marked
   Future<bool> checkAttendanceMarked({
     required String sessionID,
     required String courseID,
@@ -755,9 +754,12 @@ class ApiService {
       throw e; // Rethrow the error for handling in the UI
     }
   }
-  /// fetch attendance details
-  Future<List<Map<String, dynamic>>> fetchAttendanceDetails(String sessionID, String courseID, String date) async {
-    final url = '$baseUrl/fetch_attendance_details.php?SessionID=$sessionID&CourseID=$courseID&Date=$date';
+  /// Fetch attendance details
+  Future<List<Map<String, dynamic>>> fetchAttendanceDetails(
+      String sessionID, String courseID, String date, String sectionID) async {
+    // Add SectionID as a query parameter in the URL
+    final url =
+        '$baseUrl/fetch_attendance_details.php?SessionID=$sessionID&CourseID=$courseID&Date=$date&SectionID=$sectionID';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -777,6 +779,7 @@ class ApiService {
           "Semester": item['Semester'],
           "StudentType": item['StudentType'],
           "SectionID": item['SectionID'],
+          "Name": item['Name'],
         }).toList();
       } else {
         throw Exception('Failed to load attendance details');

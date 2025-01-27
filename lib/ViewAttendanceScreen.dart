@@ -66,7 +66,6 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
   }
 
   Future<void> _fetchAttendanceRecords() async {
-    // Attendance fetching logic for all roles
     if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a date')),
@@ -84,6 +83,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         _sessionID!,
         _courseID!,
         _selectedDate!,
+        _sectionID!, // Pass SectionID here
       );
 
       // If the role is Student, filter the records by RollNumber
@@ -178,26 +178,31 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
             if (_attendanceRecords.isNotEmpty)
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: [
-                      if (_role != 'Student')
-                        const DataColumn(label: Text('Roll Number')),
-                      const DataColumn(label: Text('Date')),
-                      const DataColumn(label: Text('Attendance Status')),
-                      const DataColumn(label: Text('Warnings Sent')),
-                      const DataColumn(label: Text('Entry Date')),
-                    ],
-                    rows: _attendanceRecords.map((record) {
-                      return DataRow(cells: [
+                  scrollDirection: Axis.vertical, // Enable vertical scrolling
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal, // Enable horizontal scrolling
+                    child: DataTable(
+                      columns: [
                         if (_role != 'Student')
-                          DataCell(Text(record['RollNumber'] ?? '')),
-                        DataCell(Text(record['Date'] ?? '')),
-                        DataCell(Text(record['AttendanceStatus'] ?? '')),
-                        DataCell(Text(record['WarningsSent'] ?? '')),
-                        DataCell(Text(record['EntryDate'] ?? '')),
-                      ]);
-                    }).toList(),
+                          const DataColumn(label: Text('Roll Number')),
+                        const DataColumn(label: Text('Name')),
+                        const DataColumn(label: Text('Date')),
+                        const DataColumn(label: Text('Attendance Status')),
+                        const DataColumn(label: Text('Warnings Sent')),
+
+                      ],
+                      rows: _attendanceRecords.map((record) {
+                        return DataRow(cells: [
+                          if (_role != 'Student')
+                            DataCell(Text(record['RollNumber'] ?? '')),
+                          DataCell(Text(record['Name'] ?? '')),
+                          DataCell(Text(record['Date'] ?? '')),
+                          DataCell(Text(record['AttendanceStatus'] ?? '')),
+                          DataCell(Text(record['WarningsSent'] ?? '')),
+
+                        ]);
+                      }).toList(),
+                    ),
                   ),
                 ),
               ),
