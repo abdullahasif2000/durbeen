@@ -46,22 +46,13 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       _sectionID = prefs.getString('SelectedSectionID');
     });
 
-    // Debugging output
-    print('SessionID: $_sessionID');
-    print('CourseID: $_courseID');
-    print('SectionID: $_sectionID');
-    print('Role: $_role');
-    print('RollNumber: $_rollNumber');
-
-    // Fetch attendance dates for all roles
     await _fetchAttendanceDates();
     setState(() {
-      _isLoading = false; // Set loading to false after fetching dates
+      _isLoading = false;
     });
 
-    // Automatically fetch attendance for students
     if (_role == 'Student') {
-      _fetchAttendanceRecords(); // Fetch attendance records for the student
+      _fetchAttendanceRecords();
     }
   }
 
@@ -83,14 +74,13 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         _sessionID!,
         _courseID!,
         _selectedDate!,
-        _sectionID!, // Pass SectionID here
+        _sectionID!,
       );
 
-      // If the role is Student, filter the records by RollNumber
       if (_role == 'Student') {
         _attendanceRecords = records.where((record) => record['RollNumber'] == _rollNumber).toList();
       } else {
-        _attendanceRecords = records; // For other roles, show all records
+        _attendanceRecords = records;
       }
 
       setState(() {
@@ -125,6 +115,19 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching dates: $e')),
       );
+    }
+  }
+
+  Color _getAttendanceStatusColor(String? status) {
+    switch (status) {
+      case 'present':
+        return Colors.green.shade100;
+      case 'absent':
+        return Colors.red.shade100;
+      case 'late':
+        return Colors.yellow.shade100;
+      default:
+        return Colors.grey.shade200;
     }
   }
 
@@ -163,7 +166,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                 setState(() {
                   _selectedDate = newValue;
                 });
-                _fetchAttendanceRecords(); // Fetch attendance for the selected date
+                _fetchAttendanceRecords();
               },
               items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
                 return DropdownMenuItem<String>(
@@ -178,9 +181,9 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
             if (_attendanceRecords.isNotEmpty)
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical, // Enable vertical scrolling
+                  scrollDirection: Axis.vertical,
                   child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // Enable horizontal scrolling
+                    scrollDirection: Axis.horizontal,
                     child: DataTable(
                       columns: [
                         if (_role != 'Student')
@@ -189,18 +192,22 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                         const DataColumn(label: Text('Date')),
                         const DataColumn(label: Text('Attendance Status')),
                         const DataColumn(label: Text('Warnings Sent')),
-
                       ],
                       rows: _attendanceRecords.map((record) {
-                        return DataRow(cells: [
-                          if (_role != 'Student')
-                            DataCell(Text(record['RollNumber'] ?? '')),
-                          DataCell(Text(record['Name'] ?? '')),
-                          DataCell(Text(record['Date'] ?? '')),
-                          DataCell(Text(record['AttendanceStatus'] ?? '')),
-                          DataCell(Text(record['WarningsSent'] ?? '')),
-
-                        ]);
+                        return DataRow(
+                          color: MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) =>
+                                _getAttendanceStatusColor(record['AttendanceStatus']),
+                          ),
+                          cells: [
+                            if (_role != 'Student')
+                              DataCell(Text(record['RollNumber'] ?? '')),
+                            DataCell(Text(record['Name'] ?? '')),
+                            DataCell(Text(record['Date'] ?? '')),
+                            DataCell(Text(record['AttendanceStatus'] ?? '')),
+                            DataCell(Text(record['WarningsSent'] ?? '')),
+                          ],
+                        );
                       }).toList(),
                     ),
                   ),

@@ -28,6 +28,8 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
     final prefs = await SharedPreferences.getInstance();
     final sessionId = prefs.getString('SessionID');
     final courseIdsString = prefs.getString('CourseIDs');
+    final rollNumber = prefs.getString('RollNumber');
+    final userRole = prefs.getString('UserRole');
 
     if (sessionId == null || courseIdsString == null) {
       throw Exception("SessionID or CourseIDs not found in SharedPreferences");
@@ -37,17 +39,34 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
     List<Map<String, dynamic>> allSections = [];
 
     for (var courseId in courseIds) {
-      final sections = await ApiService().fetchSections(
-        sessionID: sessionId,
-        courseID: courseId.toString(),
-      );
+      List<Map<String, dynamic>> sections;
+
+      if (userRole == 'Student' && rollNumber != null) {
+        // Fetch sections for students
+        sections = await ApiService().fetchStudentSections(
+          sessionID: sessionId,
+          courseID: courseId.toString(),
+          rollNumber: rollNumber,
+        );
+      } else {
+        // Fetch sections for admin or faculty
+        sections = await ApiService().fetchSections(
+          sessionID: sessionId,
+          courseID: courseId.toString(),
+        );
+      }
 
       for (var section in sections) {
-        // Fetch total students for each section
+        // Normalize SectionID field
+        final sectionId = section['id'] ?? section['SectionID'];
+        section['SectionID'] = sectionId; // Ensure 'SectionID' exists
+        section.remove('id'); // Optionally remove 'id' if it exists and isn't needed
+
+        // Fetch total students for the section
         final totalStudents = await _fetchTotalStudents(
           sessionId,
           courseId.toString(),
-          section['id'].toString(),
+          sectionId.toString(),
         );
         section['totalStudents'] = totalStudents; // Add total students to section map
       }
@@ -59,10 +78,11 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
   }
 
   Future<int> _fetchTotalStudents(String sessionId, String courseId, String sectionId) async {
+    // Use the SectionID instead of the id
     final students = await ApiService().fetchMappedStudents(
       SessionID: sessionId,
       CourseID: courseId,
-      SectionID: sectionId,
+      SectionID: sectionId, // This should be the SectionID from the section map
     );
     return students.length; // Return the total number of students
   }
@@ -105,10 +125,10 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
                   onTap: () async {
                     // Save SectionID to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('SelectedSectionID', section['id'].toString());
+                    await prefs.setString('SelectedSectionID', section['SectionID'].toString());
 
                     // Print the saved SectionID to console
-                    print('Selected SectionID: ${section['id']}');
+                    print('Selected SectionID: ${section['SectionID']}');
 
                     // Navigate to the appropriate screen based on the option
                     if (widget.option == 'Mark') {
@@ -153,6 +173,7 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
                               const SizedBox(height: 8),
                               Text('CourseID: ${section['CourseID'] ?? 'N/A'}'),
                               Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
+                              Text('Section ID: ${section['SectionID'] ?? 'N/A'}'), // Added SectionID field
                               Text('Total Students: ${section['totalStudents'] ?? 0}'),
                             ],
                           ),

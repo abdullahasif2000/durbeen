@@ -54,9 +54,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
   }
 
   Future<void> _fetchAttendanceRecords() async {
-    // Attendance fetching logic for all roles
-    if (_sessionID == null || _courseID == null || _sectionID == null ||
-        _selectedDate == null) {
+    if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a date')),
       );
@@ -102,7 +100,9 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
 
     try {
       final dates = await ApiService().fetchAttendanceDates(
-          _sessionID!, _courseID!);
+        _sessionID!,
+        _courseID!,
+      );
       setState(() {
         _attendanceDates = dates;
       });
@@ -113,8 +113,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     }
   }
 
-  Future<void> _updateAttendanceStatus(String rollNumber,
-      String newStatus) async {
+  Future<void> _updateAttendanceStatus(String rollNumber, String newStatus) async {
     try {
       await ApiService().updateAttendanceStatus(
         sessionID: _sessionID!,
@@ -134,6 +133,19 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error updating attendance: $e')),
       );
+    }
+  }
+
+  Color _getAttendanceStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'present':
+        return Colors.green.shade100;
+      case 'absent':
+        return Colors.red.shade100;
+      case 'late':
+        return Colors.yellow.shade100;
+      default:
+        return Colors.grey.shade200; // Default color for unknown statuses
     }
   }
 
@@ -172,8 +184,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                 });
                 _fetchAttendanceRecords(); // Fetch attendance for the selected date
               },
-              items: _attendanceDates.map<DropdownMenuItem<String>>((
-                  String date) {
+              items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
                 return DropdownMenuItem<String>(
                   value: date,
                   child: Text(date),
@@ -186,10 +197,9 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
             if (_attendanceRecords.isNotEmpty)
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical, // Enable vertical scrolling
+                  scrollDirection: Axis.vertical,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    // Enable horizontal scrolling
                     child: DataTable(
                       columns: const [
                         DataColumn(label: Text('Roll Number')),
@@ -200,56 +210,54 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                       ],
                       rows: _attendanceRecords.map((record) {
                         String rollNumber = record['RollNumber'] ?? '';
-                        String attendanceStatus = record['AttendanceStatus'] ??
-                            '';
+                        String attendanceStatus = record['AttendanceStatus'] ?? '';
 
-                        bool isPresent = attendanceStatus == 'present';
-                        bool isAbsent = attendanceStatus == 'absent';
-                        bool isLate = attendanceStatus == 'late';
+                        bool isPresent = attendanceStatus.toLowerCase() == 'present';
+                        bool isAbsent = attendanceStatus.toLowerCase() == 'absent';
+                        bool isLate = attendanceStatus.toLowerCase() == 'late';
 
-                        return DataRow(cells: [
-                          DataCell(Text(rollNumber)),
-                          DataCell(Text(record['Date'] ?? '')),
-                          DataCell(
-                            Checkbox(
-                              value: isPresent,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  _updateAttendanceStatus(rollNumber,
-                                      value ? 'present' : (isAbsent
-                                          ? 'absent'
-                                          : 'late'));
-                                }
-                              },
-                            ),
+                        return DataRow(
+                          color: MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) => _getAttendanceStatusColor(attendanceStatus),
                           ),
-                          DataCell(
-                            Checkbox(
-                              value: isAbsent,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  _updateAttendanceStatus(rollNumber,
-                                      value ? 'absent' : (isPresent
-                                          ? 'present'
-                                          : 'late'));
-                                }
-                              },
+                          cells: [
+                            DataCell(Text(rollNumber)),
+                            DataCell(Text(record['Date'] ?? '')),
+                            DataCell(
+                              Checkbox(
+                                value: isPresent,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _updateAttendanceStatus(
+                                        rollNumber, value ? 'present' : (isAbsent ? 'absent' : 'late'));
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                          DataCell(
-                            Checkbox(
-                              value: isLate,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  _updateAttendanceStatus(rollNumber,
-                                      value ? 'late' : (isPresent
-                                          ? 'present'
-                                          : 'absent'));
-                                }
-                              },
+                            DataCell(
+                              Checkbox(
+                                value: isAbsent,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _updateAttendanceStatus(
+                                        rollNumber, value ? 'absent' : (isPresent ? 'present' : 'late'));
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                        ]);
+                            DataCell(
+                              Checkbox(
+                                value: isLate,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _updateAttendanceStatus(
+                                        rollNumber, value ? 'late' : (isPresent ? 'present' : 'absent'));
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        );
                       }).toList(),
                     ),
                   ),

@@ -242,6 +242,29 @@ class ApiService {
     }
   }
 
+  /// fetch sections based on student
+  Future<List<Map<String, dynamic>>> fetchStudentSections({
+    required String sessionID,
+    required String courseID,
+    required String rollNumber,
+  }) async {
+    final url =
+        '$baseUrl/fetch_student_sections.php?SessionID=$sessionID&CourseID=$courseID&RollNumber=$rollNumber';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        // Parse the response and return as a list of maps
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to load student sections: ${response.body}");
+      }
+    } catch (e) {
+      print('Error fetching student sections: $e');
+      throw e;
+    }
+  }
 
   /// Deletes a section based on SectionID
   Future<Map<String, dynamic>> deleteSection(String sectionID) async {
