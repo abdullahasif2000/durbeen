@@ -270,7 +270,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ViewSectionScreen(),
+                        builder: (context) => ViewSectionScreen(cohort: widget.cohort),
                       ),
                     );
                   },

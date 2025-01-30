@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'AddMoreStudents.dart'; // Import the AddMoreStudents screen
 
 class ViewSectionScreen extends StatefulWidget {
-  const ViewSectionScreen({Key? key}) : super(key: key);
+  final String cohort;
+  const ViewSectionScreen({Key? key, required this.cohort}) : super(key: key);
 
   @override
   _ViewSectionScreenState createState() => _ViewSectionScreenState();
@@ -190,9 +192,29 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
                         Text('Total Students: ${section['studentCount']}'), // Display total students
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDelete(section['id']),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.person_add_alt_1, color: Colors.blue),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddMoreStudents(
+                                  sectionID: section['id'],
+                                  courseID: section['CourseID'],
+                                  cohort: widget.cohort, // Pass cohort here
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDelete(section['id']),
+                        ),
+                      ],
                     ),
                   ),
                 );

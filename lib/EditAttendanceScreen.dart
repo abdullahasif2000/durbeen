@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class EditAttendanceScreen extends StatefulWidget {
   const EditAttendanceScreen({Key? key}) : super(key: key);
@@ -203,6 +204,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                     child: DataTable(
                       columns: const [
                         DataColumn(label: Text('Roll Number')),
+                        DataColumn(label: Text('Name')), // New column for Name
                         DataColumn(label: Text('Date')),
                         DataColumn(label: Text('Present')),
                         DataColumn(label: Text('Absent')),
@@ -210,6 +212,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                       ],
                       rows: _attendanceRecords.map((record) {
                         String rollNumber = record['RollNumber'] ?? '';
+                        String name = record['Name'] ?? ''; // Get the name from the record
                         String attendanceStatus = record['AttendanceStatus'] ?? '';
 
                         bool isPresent = attendanceStatus.toLowerCase() == 'present';
@@ -222,14 +225,20 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                           ),
                           cells: [
                             DataCell(Text(rollNumber)),
+                            DataCell(Text(name)), // Display the name
                             DataCell(Text(record['Date'] ?? '')),
                             DataCell(
                               Checkbox(
                                 value: isPresent,
                                 onChanged: (value) {
                                   if (value != null) {
-                                    _updateAttendanceStatus(
-                                        rollNumber, value ? 'present' : (isAbsent ? 'absent' : 'late'));
+                                    if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
+                                      // Show alert if trying to edit a non-current date
+                                      _showAlertDialog('You cannot edit attendance for this date.');
+                                    } else {
+                                      _updateAttendanceStatus(
+                                          rollNumber, value ? 'present' : (isAbsent ? 'absent' : 'late'));
+                                    }
                                   }
                                 },
                               ),
@@ -239,8 +248,13 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                                 value: isAbsent,
                                 onChanged: (value) {
                                   if (value != null) {
-                                    _updateAttendanceStatus(
-                                        rollNumber, value ? 'absent' : (isPresent ? 'present' : 'late'));
+                                    if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
+                                      // Show alert if trying to edit a non-current date
+                                      _showAlertDialog('You cannot edit attendance for this date.');
+                                    } else {
+                                      _updateAttendanceStatus(
+                                          rollNumber, value ? 'absent' : (isPresent ? 'present' : 'late'));
+                                    }
                                   }
                                 },
                               ),
@@ -250,8 +264,13 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                                 value: isLate,
                                 onChanged: (value) {
                                   if (value != null) {
-                                    _updateAttendanceStatus(
-                                        rollNumber, value ? 'late' : (isPresent ? 'present' : 'absent'));
+                                    if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
+                                      // Show alert if trying to edit a non-current date
+                                      _showAlertDialog('You cannot edit attendance for this date.');
+                                    } else {
+                                      _updateAttendanceStatus(
+                                          rollNumber, value ? 'late' : (isPresent ? 'present' : 'absent'));
+                                    }
                                   }
                                 },
                               ),
@@ -268,6 +287,26 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showAlertDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Alert'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

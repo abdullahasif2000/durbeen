@@ -16,7 +16,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<Map<String, dynamic>> attendanceData = [];
   DateTime? _selectedDate;
   bool _isAttendanceMarked = false;
-  bool isLoading=false;
+  bool isLoading = false;
+  String? _userRole; // Store user role
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<List<Map<String, dynamic>>> _loadAndFetchStudents() async {
     final prefs = await SharedPreferences.getInstance();
+    _userRole = prefs.getString('UserRole'); // Load user role
 
     final sessionID = prefs.getString('SessionID');
     final courseID = prefs.getString('CourseIDs') ?? '[]';
@@ -235,14 +237,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       },
     );
   }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final twoDaysAgo = now.subtract(const Duration(hours: 48));
+    DateTime? firstDate;
+
+    // Set the first date based on user role
+    if (_userRole == 'Admin') {
+      firstDate = DateTime(2000); // No limit, set to a very early date
+    } else {
+      firstDate = now; // Limit to the current date for Faculty
+    }
 
     final selected = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: twoDaysAgo,
+      firstDate: firstDate,
       lastDate: now,
     );
 
