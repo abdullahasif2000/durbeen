@@ -913,4 +913,65 @@ class ApiService {
       };
     }
   }
+/// old password verification
+  Future<Map<String, dynamic>> verifyOldPassword({
+    required String email,
+    required String oldPassword,
+    required String role,
+  }) async {
+    String url;
+
+    // Determine the URL based on the user role
+    if (role.toLowerCase() == 'admin') {
+      url = '${baseUrl}/usersdataN.php';
+    } else if (role.toLowerCase() == 'student') {
+      url = '${baseUrl}/studentsdataN.php';
+    } else if (role.toLowerCase() == 'faculty') {
+      url = '${baseUrl}/facultydataN.php';
+    } else {
+      return {'success': false, 'message': 'Invalid user role'};
+    }
+
+    print("Fetching user data from URL: $url");
+
+    // Make the API call to fetch user data
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      print("Response received: ${response.body}");
+      // Parse the response
+      final List<dynamic> data = json.decode(response.body);
+
+      // Search for the user by email
+      final userData = data.firstWhere(
+            (user) => user['Email'] == email,
+        orElse: () => null,
+      );
+
+      if (userData != null) {
+        final storedPasswordHash = userData['Password'];
+
+        // Hash the old password input by the user
+        final oldPasswordHash = md5.convert(utf8.encode(oldPassword)).toString();
+
+        print("Old password hash: $oldPasswordHash");
+        print("Stored password hash: $storedPasswordHash");
+
+        // Compare the hashed old password with the stored password hash
+        if (oldPasswordHash == storedPasswordHash) {
+          print("Old password verified successfully.");
+          return {'success': true, 'message': 'Old password verified successfully'};
+        } else {
+          print("Old password verification failed.");
+          return {'success': false, 'message': 'Old password is incorrect'};
+        }
+      } else {
+        print("User  not found for email: $email");
+        return {'success': false, 'message': 'User  not found'};
+      }
+    } else {
+      print("Failed to verify old password. Status code: ${response.statusCode}");
+      return {'success': false, 'message': 'Failed to verify old password'};
+    }
+  }
 }
