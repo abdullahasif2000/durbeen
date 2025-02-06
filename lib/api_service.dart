@@ -23,8 +23,10 @@ class ApiService {
     final hash = md5.convert(bytes); // Generate MD5 hash
     return hash.toString(); // Return hashed password
   }
-/// role based login
-  Future<Map<String, dynamic>?> login(String email, String password, String role) async {
+
+  /// role based login
+  Future<Map<String, dynamic>?> login(String email, String password,
+      String role) async {
     final roleUrls = {
       "Admin": "$baseUrl/usersdataN.php",
       "Student": "$baseUrl/studentsdataN.php",
@@ -66,14 +68,14 @@ class ApiService {
         return null;
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch data. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error during login: $e");
       throw Exception("Error during login: $e");
     }
   }
-
 
 
   /// Fetches available cohorts from the API
@@ -104,7 +106,8 @@ class ApiService {
   }
 
   /// Fetches courses based on cohort and SessionID
-  Future<List<Map<String, dynamic>>> fetchCourses(String cohort, String sessionId) async {
+  Future<List<Map<String, dynamic>>> fetchCourses(String cohort,
+      String sessionId) async {
     final url = "$baseUrl/fetch_offered_coursesN.php?cohort=$cohort&SessionID=$sessionId";
 
     try {
@@ -120,15 +123,18 @@ class ApiService {
         if (decodedJson is List) {
           return List<Map<String, dynamic>>.from(decodedJson);
         } else {
-          print("Unexpected JSON structure. Expected a List, got: $decodedJson");
+          print(
+              "Unexpected JSON structure. Expected a List, got: $decodedJson");
           throw Exception("Unexpected response format");
         }
       } else {
         print("Failed to fetch courses. Status code: ${response.statusCode}");
-        throw Exception("Failed to fetch courses. Status Code: ${response.statusCode}");
+        throw Exception(
+            "Failed to fetch courses. Status Code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching courses for cohort $cohort with SessionID $sessionId: $e");
+      print(
+          "Error fetching courses for cohort $cohort with SessionID $sessionId: $e");
       throw Exception("Error fetching courses: $e");
     }
   }
@@ -325,6 +331,7 @@ class ApiService {
       throw Exception("Error adding student to section: $e");
     }
   }
+
   /// fetch mapped student details
   Future<List<Map<String, dynamic>>> fetchMappedStudents({
     required String SessionID,
@@ -364,14 +371,16 @@ class ApiService {
       throw Exception('An error occurred while fetching mapped students');
     }
   }
-/// Remove student from section API
+
+  /// Remove student from section API
   Future<bool> removeStudentFromSection({
     required String rollNumber,
     required String sessionID,
     required String courseID,
   }) async {
     // Append query parameters directly to the URL
-    final url = Uri.parse('$baseUrl/remove_students_from_sectionN.php?RollNumber=$rollNumber&SessionID=$sessionID&CourseID=$courseID');
+    final url = Uri.parse(
+        '$baseUrl/remove_students_from_sectionN.php?RollNumber=$rollNumber&SessionID=$sessionID&CourseID=$courseID');
 
     print('API Request to: $url');
 
@@ -400,6 +409,7 @@ class ApiService {
       return false;
     }
   }
+
   /// Method to mark attendance
   Future<bool> markAttendance({
     required String rollNumber,
@@ -413,8 +423,9 @@ class ApiService {
       final url = Uri.parse('$baseUrl/mark_new_attendanceN.php');
 
       print('Marking attendance with the following parameters:');
-      print('RollNumber: $rollNumber, CourseID: $courseID, SessionID: $sessionID, '
-          'SectionID: $sectionID, Date: $date, AttendanceStatus: $attendanceStatus');
+      print(
+          'RollNumber: $rollNumber, CourseID: $courseID, SessionID: $sessionID, '
+              'SectionID: $sectionID, Date: $date, AttendanceStatus: $attendanceStatus');
 
       final response = await http.get(
         url.replace(queryParameters: {
@@ -447,7 +458,8 @@ class ApiService {
       throw Exception('Error marking attendance: $e');
     }
   }
-/// Method to check if attendance is already marked
+
+  /// Method to check if attendance is already marked
   Future<bool> checkAttendanceMarked({
     required String sessionID,
     required String courseID,
@@ -458,7 +470,8 @@ class ApiService {
       final url = Uri.parse('$baseUrl/fetch_attendance_admin.php');
 
       print('Checking attendance with the following parameters:');
-      print('SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
+      print(
+          'SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
 
       final response = await http.get(
         url.replace(queryParameters: {
@@ -503,6 +516,7 @@ class ApiService {
       throw Exception('Error checking attendance: $e');
     }
   }
+
   /// fetch admin Attendance
   Future<List<Map<String, dynamic>>> fetchAttendanceRecords({
     required String sessionID,
@@ -514,7 +528,8 @@ class ApiService {
       final url = Uri.parse('$baseUrl/fetch_attendance_admin.php');
 
       print('Checking attendance with the following parameters:');
-      print('SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
+      print(
+          'SessionID: $sessionID, CourseID: $courseID, SectionID: $sectionID, Date: $date');
 
       final response = await http.get(
         url.replace(queryParameters: {
@@ -549,6 +564,7 @@ class ApiService {
       throw Exception('Error fetching attendance: $e');
     }
   }
+
   /// Update Attendance Records
   Future<void> updateAttendanceStatus({
     required String sessionID,
@@ -558,14 +574,15 @@ class ApiService {
     required String rollNumber,
     required String attendanceStatus,
   }) async {
-    final Uri uri = Uri.parse('$baseUrl/update_attendanceN.php').replace(queryParameters: {
-      'SessionID': sessionID,
-      'CourseID': courseID,
-      'SectionID': sectionID,
-      'Date': date,
-      'RollNumber': rollNumber,
-      'AttendanceStatus': attendanceStatus,
-    });
+    final Uri uri = Uri.parse('$baseUrl/update_attendanceN.php').replace(
+        queryParameters: {
+          'SessionID': sessionID,
+          'CourseID': courseID,
+          'SectionID': sectionID,
+          'Date': date,
+          'RollNumber': rollNumber,
+          'AttendanceStatus': attendanceStatus,
+        });
 
     try {
       final response = await http.get(uri);
@@ -590,8 +607,8 @@ class ApiService {
   }
 
   /// Fetch all attendance of a student
-  Future<List<Map<String, dynamic>>> fetchAttendance(
-      String sessionID, String rollNumber, String courseID) async {
+  Future<List<Map<String, dynamic>>> fetchAttendance(String sessionID,
+      String rollNumber, String courseID) async {
     final url =
         '$baseUrl/fetch_attendanceN.php?RollNumber=$rollNumber&SessionID=$sessionID&CourseID=$courseID';
     print('Fetching attendance from: $url');
@@ -613,7 +630,8 @@ class ApiService {
           }
         }).toList();
       } else {
-        throw Exception('Failed to load attendance data: ${response.statusCode}');
+        throw Exception(
+            'Failed to load attendance data: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching attendance: $e');
@@ -622,7 +640,8 @@ class ApiService {
   }
 
   ///fetch attendance dates
-  Future<List<String>> fetchAttendanceDates(String sessionID, String courseID) async {
+  Future<List<String>> fetchAttendanceDates(String sessionID,
+      String courseID) async {
     final url = '$baseUrl/fetch_attendance_dates.php?SessionID=$sessionID&CourseID=$courseID';
 
     try {
@@ -640,9 +659,10 @@ class ApiService {
       throw e; // Rethrow the error for handling in the UI
     }
   }
+
   /// Fetch attendance details
-  Future<List<Map<String, dynamic>>> fetchAttendanceDetails(
-      String sessionID, String courseID, String date, String sectionID) async {
+  Future<List<Map<String, dynamic>>> fetchAttendanceDetails(String sessionID,
+      String courseID, String date, String sectionID) async {
     // Add SectionID as a query parameter in the URL
     final url =
         '$baseUrl/fetch_attendance_details.php?SessionID=$sessionID&CourseID=$courseID&Date=$date&SectionID=$sectionID';
@@ -652,7 +672,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        return data.map((item) => {
+        return data.map((item) =>
+        {
           "id": item['id'],
           "StudentMapID": item['StudentMapID'],
           "Date": item['Date'],
@@ -675,21 +696,25 @@ class ApiService {
       throw e; // Rethrow the error for handling in the UI
     }
   }
+
   /// fetch courses based on student
-  Future<List<Map<String, dynamic>>> fetchStudentCourses(String sessionID, String rollNumber) async {
+  Future<List<Map<String, dynamic>>> fetchStudentCourses(String sessionID,
+      String rollNumber) async {
     final url = '$baseUrl/fetchcoursesstudentN.php?RollNumber=$rollNumber&SessionID=$sessionID';
     print('API Call Initiated: $url'); // Log the API endpoint being called
 
     try {
       final response = await http.get(Uri.parse(url));
-      print('API Response Status Code: ${response.statusCode}'); // Log the status code
+      print('API Response Status Code: ${response
+          .statusCode}'); // Log the status code
 
       if (response.statusCode == 200) {
         print('API Response Body: ${response.body}'); // Log the response body
         final List data = jsonDecode(response.body);
         return data.map((course) => course as Map<String, dynamic>).toList();
       } else {
-        print('API Call Failed: Status Code ${response.statusCode}, Response: ${response.body}');
+        print('API Call Failed: Status Code ${response
+            .statusCode}, Response: ${response.body}');
         throw Exception('Failed to load student courses');
       }
     } catch (e) {
@@ -699,20 +724,23 @@ class ApiService {
   }
 
   ///fetch courses based on faculty
-  Future<List<Map<String, dynamic>>> fetchFacultyCourses(String facultyID, String sessionID) async {
+  Future<List<Map<String, dynamic>>> fetchFacultyCourses(String facultyID,
+      String sessionID) async {
     final url = '$baseUrl/fetch_faculty_coursesN.php?FacultyID=$facultyID&SessionID=$sessionID';
     print('API Call Initiated: $url'); // Log the API endpoint being called
 
     try {
       final response = await http.get(Uri.parse(url));
-      print('API Response Status Code: ${response.statusCode}'); // Log the status code
+      print('API Response Status Code: ${response
+          .statusCode}'); // Log the status code
 
       if (response.statusCode == 200) {
         print('API Response Body: ${response.body}'); // Log the response body
         final List data = jsonDecode(response.body);
         return data.map((course) => course as Map<String, dynamic>).toList();
       } else {
-        print('API Call Failed: Status Code ${response.statusCode}, Response: ${response.body}');
+        print('API Call Failed: Status Code ${response
+            .statusCode}, Response: ${response.body}');
         throw Exception('Failed to load faculty courses');
       }
     } catch (e) {
@@ -725,7 +753,7 @@ class ApiService {
   /// fetch student profile data
   Future<List<Map<String, dynamic>>> fetchStudentData() async {
     try {
-      final url='$baseUrl/studentsdataN.php';
+      final url = '$baseUrl/studentsdataN.php';
       print('Fetching data from: $url');
 
       final response = await http.get(
@@ -743,9 +771,12 @@ class ApiService {
         final List<dynamic> jsonData = jsonDecode(response.body);
 
         // Ensure data is a list of maps
-        return jsonData.map((student) => student as Map<String, dynamic>).toList();
+        return jsonData.map((student) => student as Map<String, dynamic>)
+            .toList();
       } else {
-        throw Exception('Failed to load student data: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception(
+            'Failed to load student data: ${response.statusCode} - ${response
+                .reasonPhrase}');
       }
     } catch (e) {
       print('ERROR: $e');
@@ -774,9 +805,12 @@ class ApiService {
         final List<dynamic> jsonData = jsonDecode(response.body);
 
         // Ensure data is a list of maps
-        return jsonData.map((faculty) => faculty as Map<String, dynamic>).toList();
+        return jsonData.map((faculty) => faculty as Map<String, dynamic>)
+            .toList();
       } else {
-        throw Exception('Failed to load faculty data: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception(
+            'Failed to load faculty data: ${response.statusCode} - ${response
+                .reasonPhrase}');
       }
     } catch (e) {
       print('ERROR: $e');
@@ -807,7 +841,9 @@ class ApiService {
 
         return jsonData.map((admin) => admin as Map<String, dynamic>).toList();
       } else {
-        throw Exception('Failed to load admin data: ${response.statusCode} - ${response.reasonPhrase}');
+        throw Exception(
+            'Failed to load admin data: ${response.statusCode} - ${response
+                .reasonPhrase}');
       }
     } catch (e) {
       print('ERROR: $e');
@@ -815,5 +851,66 @@ class ApiService {
     }
   }
 
+  /// change password
+  Future<Map<String, dynamic>> changePassword({
+    required String email,
+    required String newPassword, // Remove oldPassword parameter
+    required String type,
+  }) async {
+    // Construct the URL with query parameters
+    final url = Uri.parse('$baseUrl/ForgotPassword.php?Email=$email&Password=$newPassword&Type=$type');
 
+    try {
+      print("Sending request to: $url");
+
+      final response = await http.get(url);
+
+      print("Response received: ${response.statusCode}");
+      print("Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final responseBody = response.body.trim();
+        print("Response data: $responseBody");
+
+        // Convert the response body to an integer
+        int responseCode = int.tryParse(responseBody) ?? -1; // Default to -1 if parsing fails
+        print("Parsed response code: $responseCode");
+
+        if (responseCode == 1) {
+          // Success case
+          print("Password change successful for email: $email");
+          return {
+            "success": true,
+            "message": "Password changed successfully",
+          };
+        } else if (responseCode == 0) {
+          // Failure case
+          print("Password change failed for email: $email. Response code: $responseCode");
+          return {
+            "success": false,
+            "message": "Failed to change password. Please try again.",
+          };
+        } else {
+          // Handle unexpected response
+          print("Unexpected response code: $responseCode for email: $email");
+          return {
+            "success": false,
+            "message": "Unexpected response from the server.",
+          };
+        }
+      } else {
+        print("Failed with status code: ${response.statusCode}. Response body: ${response.body}");
+        return {
+          "success": false,
+          "message": "Failed to change password. Please try again."
+        };
+      }
+    } catch (e) {
+      print("Error occurred while changing password for email: $email. Error: $e");
+      return {
+        "success": false,
+        "message": "An error occurred. Please check your internet connection."
+      };
+    }
+  }
 }

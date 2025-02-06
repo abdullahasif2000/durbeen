@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'api_service.dart';
 
 class ViewAttendanceSummary extends StatefulWidget {
@@ -97,7 +98,6 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
 
           final courses = snapshot.data!;
           if (!_attendanceFetched && !_isLoading) {
-            // Use a post-frame callback to avoid calling setState during build
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _fetchAllAttendanceSummaries(courses);
             });
@@ -112,11 +112,43 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
             itemBuilder: (context, index) {
               final course = courses[index];
               final attendanceSummary = _attendanceSummaries[course['Name']] ?? [];
+              final noOfSessions = course['NoOfSessions'] ?? 0;
+
               return Card(
                 margin: const EdgeInsets.all(8.0),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: buildBarChart(course['Name'] ?? 'Unknown Course', attendanceSummary),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              course['Name'] ?? 'Unknown Course',
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          // Status indicators displayed vertically
+                          Column(
+                            children: [
+                              _buildStatusIndicator(Colors.green, 'Present'),
+                              _buildStatusIndicator(Colors.red, 'Absent'),
+                              _buildStatusIndicator(Colors.yellow, 'Late'),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No. Of Sessions: $noOfSessions',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      buildPieChart(attendanceSummary, noOfSessions),
+                    ],
+                  ),
                 ),
               );
             },
@@ -126,7 +158,24 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
     );
   }
 
-  Widget buildBarChart(String courseName, List<Map<String, dynamic>> attendanceSummary) {
+  Widget _buildStatusIndicator(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label),
+      ],
+    );
+  }
+
+  Widget buildPieChart(List<Map<String, dynamic>> attendanceSummary, int noOfSessions) {
     final total = attendanceSummary.length;
     final presentCount = attendanceSummary
         .where((entry) => (entry['AttendanceStatus'] ?? '').toLowerCase() == 'present')
@@ -138,55 +187,67 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
         .where((entry) => (entry['AttendanceStatus'] ?? '').toLowerCase() == 'late')
         .length;
 
-    int getBarLength(int count) {
-      final percentage = total == 0 ? 0 : count / total * 100;
-      return percentage < 1 ? 1 : percentage.toInt();
-    }
-
     if (total == 0) {
-      return Center(child: Text('$courseName: No data available.'));
+      return Center(child: Text('No data available.'));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            'Attendance Breakdown for $courseName',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    // Determine status based on absentCount
+    String status;
+    if (absentCount >= 8) {
+      status = 'Fail';
+    } else if (absentCount == 7) {
+      status = 'Probation';
+    } else if (absentCount == 6) {
+      status = 'Warning';
+    } else {
+      status = 'Clear';
+    }
+
+    final pieChartData = [
+      PieChartSectionData(
+        value: presentCount.toDouble(),
+        title: '${presentCount} (${(presentCount / noOfSessions * 100).toStringAsFixed(1)}%)',
+        color: Colors.green,
+        titleStyle: const TextStyle(fontSize: 11, color: Colors.black87),
+      ),
+      PieChartSectionData(
+        value: absentCount.toDouble(),
+        title: '${absentCount} (${(absentCount / noOfSessions * 100).toStringAsFixed(1)}%)',
+        color: Colors.red,
+        titleStyle: const TextStyle(fontSize: 11, color: Colors.black87),
+      ),
+      PieChartSectionData(
+        value: lateCount.toDouble(),
+        title: '${lateCount} (${(lateCount / noOfSessions * 100).toStringAsFixed(1)}%)',
+        color: Colors.yellow,
+        titleStyle: const TextStyle(fontSize: 11, color: Colors.black87),
+      ),
+    ];
+
+    return SizedBox(
+      height: 200, // Set a fixed height for the pie chart
+      child: Column(
+        children: [
+          Expanded( // Wrap the PieChart with Expanded
+            child: PieChart(
+              PieChartData(
+                sections: pieChartData,
+                borderData: FlBorderData(show: false),
+                sectionsSpace: 0,
+                centerSpaceRadius: 40,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        ...[
-          {'label': 'Present', 'count': presentCount, 'color': Colors.green},
-          {'label': 'Absent', 'count': absentCount, 'color': Colors.red},
-          {'label': 'Late', 'count': lateCount, 'color': Colors.orange},
-        ].map((data) {
-          final count = data['count'] as int;
-          return Row(
-            children: [
-              Text(data['label'] as String, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: getBarLength(count),
-                child: Container(
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: data['color'] as Color,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$count (${(total == 0 ? 0 : (count / total * 100).toStringAsFixed(1))}%)',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ],
-          );
-        }),
-      ],
+          // Display the status below the pie chart
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Status: $status',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

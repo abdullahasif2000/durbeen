@@ -6,6 +6,7 @@ import 'CreateSectionScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AttendanceOptionScreen.dart';
 import 'UserProfile.dart';
+import 'ChangePassword.dart';
 
 class ModuleScreen extends StatefulWidget {
   final String role;
@@ -231,6 +232,18 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const UserProfile()),
+                );
+              },
+            ),
+
+            ListTile(
+              title: const Text('Change Password'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePassword(onPasswordChanged: _logout), // Pass the logout function
+                  ),
                 );
               },
             ),
