@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'ModuleScreen.dart';
 import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'ForgotPassword.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   void handleLogin() async {
-    String email = emailController.text.trim();
+    String email = emailController.text.trim().toLowerCase(); // Convert input email to lowercase
     String password = passwordController.text.trim();
     String role = selectedRole!;
 
@@ -76,7 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Login error: $e');
     }
   }
-
 
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
@@ -200,6 +200,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: const Text(
                   'Login',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ForgotPassword()),
+                  );
+                },
+                child: const Text(
+                  'Forgot Password?',
+                  style: TextStyle(fontSize: 16, color: Colors.orange),
                 ),
               ),
               const SizedBox(height: 30),

@@ -24,9 +24,7 @@ class ApiService {
     return hash.toString(); // Return hashed password
   }
 
-  /// role based login
-  Future<Map<String, dynamic>?> login(String email, String password,
-      String role) async {
+  Future<Map<String, dynamic>?> login(String email, String password, String role) async {
     final roleUrls = {
       "Admin": "$baseUrl/usersdataN.php",
       "Student": "$baseUrl/studentsdataN.php",
@@ -46,7 +44,7 @@ class ApiService {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'Authorization': apiKey, //  API key  header
+          'Authorization': apiKey, // API key header
           'Content-Type': 'application/json',
         },
       );
@@ -58,7 +56,8 @@ class ApiService {
         final hashedPassword = hashPassword(password);
 
         for (var user in users) {
-          if (user['Email'] == email && user['Password'] == hashedPassword) {
+          // Convert both emails to lowercase for comparison
+          if (user['Email'].toLowerCase() == email.toLowerCase() && user['Password'] == hashedPassword) {
             print("Login successful for user: ${user['Email']}");
             return user; // Return user data including role
           }
@@ -68,8 +67,7 @@ class ApiService {
         return null;
       } else {
         print("Failed to fetch data. Status code: ${response.statusCode}");
-        throw Exception(
-            "Failed to fetch data. Status Code: ${response.statusCode}");
+        throw Exception("Failed to fetch data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error during login: $e");
