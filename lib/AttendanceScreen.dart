@@ -142,6 +142,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
+      // Retrieve UserID based on role
+      String userID;
+      String type = prefs.getString('UserRole') ?? ''; // Get the role for Type
+
+      if (type == 'Faculty') {
+        userID = prefs.getString('FacultyID') ?? ''; // Get FacultyID
+      } else if (type == 'Admin') {
+        userID = prefs.getString('AdminID') ?? ''; // Get AdminID
+      } else {
+        _showErrorDialog('Error: Invalid user role.');
+        return;
+      }
+
       // Show loading dialog
       final loadingDialog = AlertDialog(
         content: Row(
@@ -170,6 +183,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           sectionID: sectionID,
           date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
           attendanceStatus: entry['AttendanceStatus'],
+          userID: userID, // Pass the UserID
+          type: type,     // Pass the Type
         );
 
         if (!success) {

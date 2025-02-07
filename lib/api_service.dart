@@ -416,14 +416,17 @@ class ApiService {
     required String sectionID,
     required String date,
     required String attendanceStatus,
+    required String userID, // New parameter
+    required String type,    // New parameter
   }) async {
     try {
-      final url = Uri.parse('$baseUrl/mark_new_attendanceN.php');
+      final url = Uri.parse('$baseUrl/Mark_New_Attendance.php'); // Updated endpoint
 
       print('Marking attendance with the following parameters:');
       print(
           'RollNumber: $rollNumber, CourseID: $courseID, SessionID: $sessionID, '
-              'SectionID: $sectionID, Date: $date, AttendanceStatus: $attendanceStatus');
+              'SectionID: $sectionID, Date: $date, AttendanceStatus: $attendanceStatus, '
+              'User ID: $userID, Type: $type'); // Include new parameters in the log
 
       final response = await http.get(
         url.replace(queryParameters: {
@@ -433,6 +436,8 @@ class ApiService {
           'SectionID': sectionID,
           'Date': date,
           'AttendanceStatus': attendanceStatus,
+          'UserID': userID, // Add new parameter
+          'Type': type,     // Add new parameter
         }),
       );
 
@@ -571,8 +576,10 @@ class ApiService {
     required String date,
     required String rollNumber,
     required String attendanceStatus,
+    required String userID,
+    required String type,
   }) async {
-    final Uri uri = Uri.parse('$baseUrl/update_attendanceN.php').replace(
+    final Uri uri = Uri.parse('$baseUrl/UpdateAttendance.php').replace(
         queryParameters: {
           'SessionID': sessionID,
           'CourseID': courseID,
@@ -580,20 +587,27 @@ class ApiService {
           'Date': date,
           'RollNumber': rollNumber,
           'AttendanceStatus': attendanceStatus,
+          'User  ID': userID,
+          'Type': type,
         });
+
+    print('DEBUG: Sending request to: $uri');
 
     try {
       final response = await http.get(uri);
-      print('DEBUG: API Response: ${response.body}');
+      print('DEBUG: API Response Status Code: ${response.statusCode}');
+      print('DEBUG: API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('DEBUG: Parsed Response: $data');
+        final int result = int.parse(response.body);
+        print('DEBUG: Parsed Response: $result');
 
-        if (data['status'] == 'success') {
+        if (result == 1) {
           print('DEBUG: Attendance updated successfully.');
+        } else if (result == 0) {
+          throw Exception('Failed to update attendance: Error occurred.');
         } else {
-          throw Exception('Failed to update attendance: ${data['status']}');
+          throw Exception('Unexpected response value.');
         }
       } else {
         throw Exception('Error: ${response.statusCode}');

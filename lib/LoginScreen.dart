@@ -47,6 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
           // Save email for admin
           await prefs.setString('AdminEmail', email);
           print("Admin email saved: $email");
+
+          // Save Admin ID (assuming the response contains 'id')
+          String? adminID = response['id']?.toString(); // Use 'id' as the key
+          await prefs.setString('AdminID', adminID ?? '');
+          print("Admin email saved: $email");
+          print("AdminID saved: $adminID");
         }
 
         if (role == "Faculty") {

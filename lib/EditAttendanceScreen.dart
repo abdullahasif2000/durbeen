@@ -116,6 +116,32 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
 
   Future<void> _updateAttendanceStatus(String rollNumber, String newStatus) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      String userID;
+      String type = prefs.getString('UserRole') ?? ''; // Get the role for Type
+
+      if (type == 'Faculty') {
+        userID = prefs.getString('FacultyID') ?? ''; // Get FacultyID
+      } else if (type == 'Admin') {
+        userID = prefs.getString('AdminID') ?? ''; // Get AdminID
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Invalid user role.')),
+        );
+        return;
+      }
+
+      // Log the payload being sent
+      print('DEBUG: Updating attendance with the following parameters:');
+      print('DEBUG: SessionID: $_sessionID');
+      print('DEBUG: CourseID: $_courseID');
+      print('DEBUG: SectionID: $_sectionID');
+      print('DEBUG: Date: $_selectedDate');
+      print('DEBUG: RollNumber: $rollNumber');
+      print('DEBUG: AttendanceStatus: $newStatus');
+      print('DEBUG: UserID: $userID');
+      print('DEBUG: Type: $type');
+
       await ApiService().updateAttendanceStatus(
         sessionID: _sessionID!,
         courseID: _courseID!,
@@ -123,6 +149,9 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         date: _selectedDate!,
         rollNumber: rollNumber,
         attendanceStatus: newStatus,
+        userID: userID,      // Pass the UserID
+        type: type,          // Pass the Type
+        // updateTime: updateTime, // Removed UpdateTime
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -131,6 +160,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
 
       _fetchAttendanceRecords(); // Refresh the attendance records
     } catch (e) {
+      print('ERROR: Error updating attendance: $e'); // Log the error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error updating attendance: $e')),
       );
