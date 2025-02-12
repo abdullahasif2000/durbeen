@@ -46,20 +46,21 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
       _sectionID = prefs.getString('SelectedSectionID');
     });
 
-    await _fetchAttendanceDates();
+    if (_role == 'Student') {
+      await _fetchAttendanceRecords();
+    } else {
+      await _fetchAttendanceDates();
+    }
+
     setState(() {
       _isLoading = false;
     });
-
-    if (_role == 'Student') {
-      _fetchAttendanceRecords();
-    }
   }
 
   Future<void> _fetchAttendanceRecords() async {
-    if (_sessionID == null || _courseID == null || _sectionID == null || _selectedDate == null) {
+    if (_sessionID == null || _courseID == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a date')),
+        const SnackBar(content: Text('Missing required information')),
       );
       return;
     }
@@ -70,17 +71,55 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     });
 
     try {
-      final records = await ApiService().fetchAttendanceDetails(
-        _sessionID!,
-        _courseID!,
-        _selectedDate!,
-        _sectionID!,
-      );
-
       if (_role == 'Student') {
-        _attendanceRecords = records.where((record) => record['RollNumber'] == _rollNumber).toList();
+        final records = await ApiService().fetchAttendance(
+          _sessionID!,
+          _rollNumber!,
+          _courseID!,
+        );
+
+        // Map the response to the required format
+        _attendanceRecords = records.map((record) {
+          return {
+            'Date': record['Date'],
+            'AttendanceStatus': record['AttendanceStatus'],
+            'RollNumber': _rollNumber,
+            'WarningsSent': '0',
+          };
+        }).toList();
       } else {
-        _attendanceRecords = records;
+        // Fetch attendance details for teachers or other roles
+        if (_selectedDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a date')),
+          );
+          return;
+        }
+
+        // Log the API call payload
+        print('Fetching attendance details with payload:');
+        print('SessionID: $_sessionID');
+        print('CourseID: $_courseID');
+        print('Date: $_selectedDate');
+        print('SectionID: $_sectionID');
+
+        final records = await ApiService().fetchAttendanceDetails(
+          _sessionID!,
+          _courseID!,
+          _selectedDate!,
+          _sectionID!,
+        );
+
+        // Map the response to the required format
+        _attendanceRecords = records.map((record) {
+          return {
+            'Date': record['Date'],
+            'AttendanceStatus': record['AttendanceStatus'],
+            'RollNumber': record['RollNumber'],
+            'WarningsSent': record['WarningsSent'] ?? '0',
+            'Name': record['Name'], // Include Name for other roles
+          };
+        }).toList();
       }
 
       setState(() {
@@ -154,40 +193,56 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text(
-              'Select a Date:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            DropdownButton<String>(
-              hint: const Text('Select Date'),
-              value: _selectedDate,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedDate = newValue;
-                });
-                _fetchAttendanceRecords();
-              },
-              items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
-                return DropdownMenuItem<String>(
-                  value: date,
-                  child: Text(date),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
+            if (_role != 'Student') ...[
+              const Text(
+                'Select a Date:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              DropdownButton<String>(
+                hint: const Text('Select Date'),
+                value: _selectedDate,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedDate = newValue;
+                  });
+                  _fetchAttendanceRecords();
+                },
+                items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
+                  return DropdownMenuItem<String>(
+                    value: date,
+                    child: Text(date),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+            ],
             if (_error.isNotEmpty)
               Text('Error: $_error', style: const TextStyle(color: Colors.red)),
             if (_attendanceRecords.isNotEmpty)
               Expanded(
-                child: SingleChildScrollView(
+                child: _role == 'Student'
+                    ? ListView.builder(
+                  itemCount: _attendanceRecords.length,
+                  itemBuilder: (context, index) {
+                    final record = _attendanceRecords[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        title: Text('Date: ${record['Date']}'),
+                        subtitle: Text('Status: ${record['AttendanceStatus']}'),
+                        tileColor: _getAttendanceStatusColor(record['AttendanceStatus']),
+                      ),
+                    );
+                  },
+                )
+                    : SingleChildScrollView(
                   scrollDirection: Axis.vertical,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       columns: [
-                        if (_role != 'Student')
-                          const DataColumn(label: Text('Roll Number')),
+                        const DataColumn(label: Text('Roll Number')),
                         const DataColumn(label: Text('Name')),
                         const DataColumn(label: Text('Date')),
                         const DataColumn(label: Text('Attendance Status')),
@@ -200,8 +255,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                                 _getAttendanceStatusColor(record['AttendanceStatus']),
                           ),
                           cells: [
-                            if (_role != 'Student')
-                              DataCell(Text(record['RollNumber'] ?? '')),
+                            DataCell(Text(record['RollNumber'] ?? '')),
                             DataCell(Text(record['Name'] ?? '')),
                             DataCell(Text(record['Date'] ?? '')),
                             DataCell(Text(record['AttendanceStatus'] ?? '')),

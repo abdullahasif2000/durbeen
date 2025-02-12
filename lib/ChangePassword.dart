@@ -45,6 +45,32 @@ class _ChangePasswordState extends State<ChangePassword> {
         return;
       }
 
+      // Show confirmation dialog
+      final confirmChange = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Confirm Change Password'),
+            content: const Text('Are you sure you want to change your password? You will be logged out.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false), // User cancels
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true), // User confirms
+                child: const Text('Confirm'),
+              ),
+            ],
+          );
+        },
+      );
+
+      // If the user did not confirm, exit the function
+      if (confirmChange != true) {
+        return;
+      }
+
       try {
         // Step 1: Verify the old password
         print("Verifying old password for $email with role $userRole...");
@@ -76,6 +102,10 @@ class _ChangePasswordState extends State<ChangePassword> {
               SnackBar(content: Text(response['message'] ?? 'Password changed successfully!')),
             );
             widget.onPasswordChanged(); // Call the callback here
+
+            // Log out the user by clearing SharedPreferences
+            await prefs.clear(); // Clear all saved preferences
+
             Navigator.pop(context); // Go back to the previous screen
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -206,7 +236,7 @@ class _ChangePasswordState extends State<ChangePassword> {
           onPressed: toggleVisibility,
         ),
       ),
-      validator: (value) => _validatePassword(value), // Use the new validation function
+      validator: (value) => _validatePassword(value), //
     );
   }
 }

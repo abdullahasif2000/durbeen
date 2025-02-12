@@ -18,14 +18,16 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   void handleLogin() async {
-    String email = emailController.text.trim().toLowerCase(); // Convert input email to lowercase
-    String password = passwordController.text.trim();
-    String role = selectedRole!;
-
-    if (!_isValidEmail(email)) {
+    String? emailText = emailController.text; // Get the raw text
+    if (emailText == null || emailText.isEmpty) {
       _showSnackbar('Please enter a valid email address');
       return;
     }
+
+    String email = emailText.trim().toLowerCase(); // Now it's safe to call trim() and toLowerCase()
+
+    String password = passwordController.text.trim();
+    String role = selectedRole ?? 'Admin';
 
     if (password.isEmpty || password.length < 6) {
       _showSnackbar('Password must be at least 6 characters long');
@@ -33,44 +35,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
+      print("Attempting login with email: $email, role: $role");
       final response = await ApiService().login(email, password, role);
+      print("Raw API Response for $email: $response");
 
       if (response != null) {
-        // Save login state
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
-
-        // Save user role
         await prefs.setString('UserRole', role);
 
         if (role == "Admin") {
-          // Save email for admin
           await prefs.setString('AdminEmail', email);
-          print("Admin email saved: $email");
-
-          // Save Admin ID (assuming the response contains 'id')
-          String? adminID = response['id']?.toString(); // Use 'id' as the key
+          String? adminID = response['id']?.toString();
+          if (adminID == null || adminID.isEmpty) {
+            print("Error: AdminID is missing in the response for $email");
+          }
           await prefs.setString('AdminID', adminID ?? '');
-          print("Admin email saved: $email");
-          print("AdminID saved: $adminID");
-        }
-
-        if (role == "Faculty") {
+        } else if (role == "Faculty") {
           String? facultyID = response['FacultyID']?.toString();
+          if (facultyID == null || facultyID.isEmpty) {
+            print("Error: FacultyID is missing in the response for $email");
+          }
           await prefs.setString('FacultyID', facultyID ?? '');
-          print("FacultyID saved: $facultyID");
-        }
-
-        if (role == "Student") {
+        } else if (role == "Student") {
           String? rollNumber = response['RollNumber']?.toString();
+          if (rollNumber == null || rollNumber.isEmpty) {
+            print("Error: RollNumber is missing in the response for $email");
+          }
           String? cohort = response['cohort']?.toString();
+          if (cohort == null || cohort.isEmpty) {
+            print("Error: Cohort is missing in the response for $email");
+          }
           await prefs.setString('RollNumber', rollNumber ?? '');
           await prefs.setString('cohort', cohort ?? '');
-          print("RollNumber saved: $rollNumber");
-          print("Cohort saved: $cohort");
         }
 
-        // Navigate to ModuleScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ModuleScreen(role: role)),
@@ -78,11 +77,13 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         _showSnackbar('Invalid credentials. Please try again.');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       _showSnackbar('Error occurred during login. Please try again later.');
       print('Login error: $e');
+      print('Stack trace: $stackTrace');
     }
   }
+
 
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');

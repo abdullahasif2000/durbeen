@@ -56,10 +56,15 @@ class ApiService {
         final hashedPassword = hashPassword(password);
 
         for (var user in users) {
-          // Convert both emails to lowercase for comparison
-          if (user['Email'].toLowerCase() == email.toLowerCase() && user['Password'] == hashedPassword) {
-            print("Login successful for user: ${user['Email']}");
-            return user; // Return user data including role
+          // Check if user['Email'] is not null before processing
+          if (user['Email'] != null) {
+            // Convert both emails to lowercase for comparison
+            if (user['Email'].toLowerCase() == email.toLowerCase() && user['Password'] == hashedPassword) {
+              print("Login successful for user: ${user['Email']}");
+              return user; // Return user data including role
+            }
+          } else {
+            print("User  email is null, skipping user: $user");
           }
         }
 
@@ -984,6 +989,31 @@ class ApiService {
     } else {
       print("Failed to verify old password. Status code: ${response.statusCode}");
       return {'success': false, 'message': 'Failed to verify old password'};
+    }
+  }
+
+  /// Email sending API
+  Future<Map<String, dynamic>> sendEmail({
+    required String email,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse('$baseUrl/EmailSender.php?Email=$email&Password=$newPassword');
+
+    try {
+      print("Sending email request to: $url");
+      final response = await http.get(url);
+      print("Email response received: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        print("Email sent successfully to: $email");
+        return {"success": true, "message": "An email with the new password has been sent."};
+      } else {
+        print("Failed to send email. Status code: ${response.statusCode}. Response body: ${response.body}");
+        return {"success": false, "message": "Failed to send email. Please try again."};
+      }
+    } catch (e) {
+      print("Error occurred while sending email to: $email. Error: $e");
+      return {"success": false, "message": "An error occurred while sending the email."};
     }
   }
 }

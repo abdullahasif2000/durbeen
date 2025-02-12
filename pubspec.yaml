@@ -2,7 +2,7 @@ name: campus_connect
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.5.4
@@ -36,6 +36,7 @@ flutter:
     - assets/images/CampusConnectsmall.png
     - assets/images/CampusConnectmedium.png
     - assets/images/CampusConnect largeWhite.png
+    - assets/images/ForgotPasswordLarge.png
 
 flutter_launcher_icons:
   android: true

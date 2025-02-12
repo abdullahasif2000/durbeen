@@ -90,7 +90,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
   void _loadUserRole() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? storedRole = prefs.getString('User  Role');  // Get the user role
+    String? storedRole = prefs.getString('User Role');  // Get the user role
     setState(() {
       userRole = storedRole;  // Update the state with the stored role
     });
