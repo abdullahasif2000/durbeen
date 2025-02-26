@@ -1016,4 +1016,187 @@ class ApiService {
       return {"success": false, "message": "An error occurred while sending the email."};
     }
   }
+
+  /// Method to fetch departments
+  Future<List<Map<String, dynamic>>> fetchDepartments() async {
+    final String url = '$baseUrl/Departments.php';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+
+        final List<dynamic> data = json.decode(response.body);
+
+        return data.map((item) {
+          return {
+            'id': item['id'],
+            'DepartmentName': item['DepartmentName'],
+            'Email': item['Email'],
+          };
+        }).toList();
+      } else {
+
+        throw Exception('Failed to load departments: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching departments: $e');
+    }
+  }
+
+  /// generate complaint
+  Future<void> generateComplaint({
+    required String userId,
+    required String department,
+    required String name,
+    required String email,
+    required String type,
+    required String userType,
+    required String complaint,
+  }) async {
+    // Construct the URL with query parameters
+    final String url = '$baseUrl/GenerateComplaint.php?'
+        'UserID=$userId&'
+        'Department=$department&'
+        'Name=$name&'
+        'Email=$email&'
+        'Type=$type&'
+        'UserType=$userType&'
+        'Complaint=${Uri.encodeComponent(complaint)}'; // Encode the complaint to handle special characters
+
+    try {
+      print('Sending GET request to $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      // Check the response status
+      if (response.statusCode == 200) {
+        print('Complaint submitted successfully: ${response.body}');
+      } else {
+        print('Failed to submit complaint: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error occurred while submitting complaint: $e');
+    }
+  }
+
+  /// fetch departments complaints
+  Future<List<dynamic>> fetchDepartmentsComplaints({
+    required String role,
+    required String department,
+    required String status,
+  }) async {
+    // Construct the URL with query parameters
+    final String url = '$baseUrl/FetchDepartmentsComplaints.php?'
+        'Role=$role&'
+        'Department=${Uri.encodeComponent(department)}&'
+        'Status=${Uri.encodeComponent(status)}'; // Encode parameters to handle special characters
+
+    try {
+      print('Sending GET request to $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      // Check the response status
+      if (response.statusCode == 200) {
+        print('Complaints fetched successfully: ${response.body}');
+        // Parse the JSON response and return it
+        return json.decode(response.body);
+      } else {
+        print('Failed to fetch complaints: ${response.statusCode} - ${response.body}');
+        return []; // Return an empty list on failure
+      }
+    } catch (e) {
+      print('Error occurred while fetching complaints: $e');
+      return []; // Return an empty list on error
+    }
+  }
+
+  /// fetch complaint history
+  Future<List<dynamic>> fetchComplaintHistory({
+    required int complainID,
+  }) async {
+    final String url = '$baseUrl/FetchComplainHistory.php?ComplainID=$complainID';
+
+    try {
+      print('Sending GET request to $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        print('Complaint history fetched successfully: ${response.body}');
+        return json.decode(response.body);
+      } else {
+        print('Failed to fetch complaint history: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('Error occurred while fetching complaint history: $e');
+      return [];
+    }
+  }
+
+  /// Add complaint remarks
+  Future<bool> addComplaintRemarks({
+    required int userID,
+    required int complaintID,
+    required String status,
+    required String remarks,
+    required String name, // New parameter
+    required String email, // New parameter
+    required String department, // New parameter
+  }) async {
+    // Construct the URL with query parameters
+    final String url = '$baseUrl/AddComplaintRemarks.php?UserID=$userID&ID=$complaintID&Status=${Uri.encodeComponent(status)}&remarks=${Uri.encodeComponent(remarks)}&Name=${Uri.encodeComponent(name)}&Email=${Uri.encodeComponent(email)}&Department=${Uri.encodeComponent(department)}';
+
+    try {
+      print('Sending GET request to $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        print('Complaint remarks added successfully: ${response.body}');
+        return true;
+      } else {
+        print('Failed to add complaint remarks: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while adding complaint remarks: $e');
+      return false;
+    }
+  }
+
+  /// Fetch own complaints based on status and email
+  Future<List<dynamic>> fetchOwnComplaints({
+    required String email,
+    required String status,
+  }) async {
+    final String url = '$baseUrl/fetch_own_complaints.php?Status=$status&Email=${Uri.encodeComponent(email)}';
+
+    try {
+      print('Preparing to send GET request to: $url');
+      print('Request Payload:');
+      print('Email: $email');
+      print('Status: $status');
+
+      final response = await http.get(Uri.parse(url));
+
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('Own complaints fetched successfully.');
+        List<dynamic> complaints = json.decode(response.body);
+        print('Fetched Complaints: $complaints');
+        return complaints;
+      } else {
+        print('Failed to fetch own complaints: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('Error occurred while fetching own complaints: $e');
+      return [];
+    }
+  }
 }

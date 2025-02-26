@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'AttendanceOptionScreen.dart';
 import 'UserProfile.dart';
 import 'ChangePassword.dart';
+import 'AnnouncementOption.dart';
+import 'ComplaintOptions.dart';
 
 class ModuleScreen extends StatefulWidget {
   final String role;
@@ -302,7 +304,24 @@ class _ModuleScreenState extends State<ModuleScreen> {
                       builder: (context) => AttendanceOptionScreen(role: widget.role),
                     ),
                   );
-                } else {
+                }
+                else if (module["title"] == "Announcements") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AnnouncementOptions(),
+                    ),
+                  );
+                }
+                else if (module["title"] == "Complaint & Feedback") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ComplaintOptions(),
+                    ),
+                  );
+                }
+                else {
                   // Placeholder action for other modules
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Tapped on ${module["title"]}')),

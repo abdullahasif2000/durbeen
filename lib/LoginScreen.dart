@@ -14,18 +14,17 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String? selectedRole = 'Admin'; // Default role
+  String? selectedRole = 'Admin';
   bool _obscurePassword = true;
 
   void handleLogin() async {
-    String? emailText = emailController.text; // Get the raw text
+    String? emailText = emailController.text;
     if (emailText == null || emailText.isEmpty) {
       _showSnackbar('Please enter a valid email address');
       return;
     }
 
-    String email = emailText.trim().toLowerCase(); // Now it's safe to call trim() and toLowerCase()
-
+    String email = emailText.trim().toLowerCase();
     String password = passwordController.text.trim();
     String role = selectedRole ?? 'Admin';
 
@@ -43,32 +42,54 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('UserRole', role);
+        await prefs.setString('Email', email);
 
-        if (role == "Admin") {
-          await prefs.setString('AdminEmail', email);
-          String? adminID = response['id']?.toString();
-          if (adminID == null || adminID.isEmpty) {
-            print("Error: AdminID is missing in the response for $email");
-          }
-          await prefs.setString('AdminID', adminID ?? '');
+        // Save the role to SharedPreferences
+        String fetchedRole = response['Role']?.toString() ?? role;
+        await prefs.setString('Role', fetchedRole);
+
+
+        print("Saved Role to SharedPreferences: $fetchedRole");
+
+        String? name;
+        String? department;
+        if (role == "Admin" || role == "Student") {
+          name = response['Name']?.toString();
+          department = response['department']?.toString();
         } else if (role == "Faculty") {
-          String? facultyID = response['FacultyID']?.toString();
-          if (facultyID == null || facultyID.isEmpty) {
-            print("Error: FacultyID is missing in the response for $email");
-          }
-          await prefs.setString('FacultyID', facultyID ?? '');
-        } else if (role == "Student") {
-          String? rollNumber = response['RollNumber']?.toString();
-          if (rollNumber == null || rollNumber.isEmpty) {
-            print("Error: RollNumber is missing in the response for $email");
-          }
-          String? cohort = response['cohort']?.toString();
-          if (cohort == null || cohort.isEmpty) {
-            print("Error: Cohort is missing in the response for $email");
-          }
-          await prefs.setString('RollNumber', rollNumber ?? '');
-          await prefs.setString('cohort', cohort ?? '');
+          name = response['FacultyName']?.toString();
         }
+
+        if (name == null || name.isEmpty) {
+          print("Error: Name is missing in the response for $email");
+        } else {
+          await prefs.setString(role == "Faculty" ? 'FacultyName' : 'Name', name);
+          print("Email: $email, Name: $name");
+
+          if (role == "Admin") {
+            await prefs.setString('AdminEmail', email);
+            await prefs.setString('AdminID', response['id']?.toString() ?? '');
+            await prefs.setString('Department', department ?? '');
+            print("Admin Name: $name");
+            print("Department: $department");
+          } else if (role == "Faculty") {
+            await prefs.setString('FacultyID', response['FacultyID']?.toString() ?? '');
+            print("Faculty Name: $name");
+          } else if (role == "Student") {
+            await prefs.setString('RollNumber', response['RollNumber']?.toString() ?? '');
+            await prefs.setString('cohort', response['cohort']?.toString() ?? '');
+            print("Student Name: $name");
+          }
+        }
+
+
+        print("User preferences saved:");
+        print("isLoggedIn: true");
+        print("UserRole: $role");
+        print("Email: $email");
+        print("Role: $fetchedRole");
+        print("Name: $name");
+        print("Department: $department");
 
         Navigator.pushReplacement(
           context,

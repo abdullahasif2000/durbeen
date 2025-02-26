@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'api_service.dart'; // Import the ApiService
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
+import 'api_service.dart';
 
 class ChangePassword extends StatefulWidget {
   final VoidCallback onPasswordChanged; // Callback for password change
@@ -34,8 +32,8 @@ class _ChangePasswordState extends State<ChangePassword> {
 
       // Fetch UserRole from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      final userRole = prefs.getString('UserRole') ?? ''; // Retrieve the role with the correct key
-      print("Retrieved User Role: $userRole"); // Debugging line
+      final userRole = prefs.getString('UserRole') ?? '';
+      print("Retrieved User Role: $userRole");
 
       // Validate user role
       if (userRole.isEmpty || !['admin', 'student', 'faculty'].contains(userRole.toLowerCase())) {

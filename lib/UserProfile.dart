@@ -220,10 +220,12 @@ class _UserProfileState extends State<UserProfile> {
                       ] else if (userRole == 'Faculty') ...[
                         _buildInfoRow('Faculty ID', userData!['FacultyID']),
                         _buildInfoRow('Email', userData!['Email']),
+                        _buildInfoRow('Faculty Name', userData!['FacultyName']),
                         _buildInfoRow('Status', userData!['Status']),
                       ] else if (userRole == 'Admin') ...[
                         _buildInfoRow('Admin ID', userData!['id']),
                         _buildInfoRow('Email', userData!['Email']),
+                        _buildInfoRow('Name ', userData!['Name']),
                         _buildInfoRow('Department', userData!['department']),
                       ],
                     ],
