@@ -26,7 +26,7 @@ class _AddComplaintRemarksState extends State<AddComplaintRemarks> {
   final _formKey = GlobalKey<FormState>();
   final _remarksController = TextEditingController();
   String? _selectedStatus;
-  final List<String> _statusOptions = ['In Process', 'False', 'Resolved', 'Challenged'];
+  final List<String> _statusOptions = ['In Process', 'False', 'Resolved'];
 
   @override
   void initState() {

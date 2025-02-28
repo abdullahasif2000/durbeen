@@ -44,7 +44,24 @@ class _ViewComplaintsState extends State<ViewComplaints> {
       // Decode the complaint strings
       for (var complaint in fetchedComplaints) {
         if (complaint['Complaint'] != null) {
-          complaint['Complaint'] = Uri.decodeComponent(complaint['Complaint']);
+          try {
+            // Sanitize the complaint string
+            String complaintString = complaint['Complaint'];
+
+            // Replace HTML entities with their corresponding characters
+            complaintString = complaintString
+                .replaceAll('&quot;', '"')
+                .replaceAll('&amp;', '&')
+                .replaceAll('&lt;', '<')
+                .replaceAll('&gt;', '>')
+                .replaceAll('\u2019', "'"); // Replace right single quote
+
+            // Decode the complaint string
+            complaint['Complaint'] = Uri.decodeComponent(complaintString);
+          } catch (e) {
+            // Handle decoding error
+            complaint['Complaint'] = 'Error decoding complaint: ${e.toString()}';
+          }
         }
       }
 
@@ -219,7 +236,7 @@ class _ViewComplaintsState extends State<ViewComplaints> {
                                 ),
                                 const SizedBox(height: 10),
 
-                                if (complaint['Status'] == 'In Process')
+                                if (complaint['Status'] == 'In Process' || complaint['Status'] == 'Challenged')
                                   GestureDetector(
                                     onTap: () {
                                       final complaintId = complaint['id'];

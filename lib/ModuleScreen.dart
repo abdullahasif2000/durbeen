@@ -160,19 +160,47 @@ class _ModuleScreenState extends State<ModuleScreen> {
     ];
 
     final List<Map<String, dynamic>> filteredModules = modules.where((module) {
+      // Common role check function for admin validation
+      bool isAuthorizedAdmin() {
+        return (userSubRole == "Admin") ||
+            (userSubRole == "User" && userDepartment == "Registrar");
+      }
+
+      // Attendance Module
       if (module["title"] == "Attendance") {
-        if (widget.role == "Admin") {
-          return (userSubRole == "Admin") ||
-              (userSubRole == "User" && userDepartment == "Registrar");
-        }
-        // Faculty and Student always see Attendance
+        if (widget.role == "Admin") return isAuthorizedAdmin();
         return widget.role == "Faculty" || widget.role == "Student";
       }
 
-      if (widget.role == "Faculty" && module["title"] == "Grades") return false;
-      if ((widget.role == "Student" || widget.role == "Faculty") &&
-          module["title"] == "Mapping") return false;
+      // Mapping Module
+      if (module["title"] == "Mapping") {
+        if (widget.role == "Admin") return isAuthorizedAdmin();
+        return false;
+      }
 
+      // Grades Module
+      if (module["title"] == "Grades") {
+        if (widget.role == "Admin") return isAuthorizedAdmin();
+        return widget.role == "Student"; // Only students see grades
+      }
+
+      // Courses Module
+      if (module["title"] == "Courses") {
+        if (widget.role == "Admin") return isAuthorizedAdmin();
+        return true; // Available to all roles except unauthorized admins
+      }
+
+      // Announcements Module (existing logic)
+      if (module["title"] == "Announcements") {
+        return true; // Keep existing logic or add custom rules
+      }
+
+      // Complaint & Feedback Module (existing logic)
+      if (module["title"] == "Complaint & Feedback") {
+        return true; // Keep existing logic or add custom rules
+      }
+
+      // Default return for unhandled modules
       return true;
     }).toList();
     return Scaffold(
