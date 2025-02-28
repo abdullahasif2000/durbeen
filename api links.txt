@@ -1,0 +1,130 @@
+live base url:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0
+
+Test Baseurl:
+https://results.gece.edu.pk/geceapi
+
+admin:
+https://results.gece.edu.pk/geceapi/usersdataN.php
+
+student:
+https://results.gece.edu.pk/geceapi/studentsdataN.php
+
+faculty:
+https://results.gece.edu.pk/geceapi/facultydataN.php
+
+Change password:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/ChangePassword.php?Email=FN2413@gece.edu.pk&Password=FazilaNaz&Type=Student&OldPassword=xyz
+
+forgot password:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/ForgotPassword.php?Email=AA2410@gece.edu.pk&Password=Life@Students&Type=Student
+
+email sender:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/EmailSender.php?Email=xyz@gmail.com&Password=123testing45
+
+cohort fetch:
+https://results.gece.edu.pk/geceapi/fetch_cohortsN.php
+
+offered courses fetched:(cohort as value )
+https://results.gece.edu.pk/geceapi/fetch_offered_coursesN.php?
+for example:
+(https://results.gece.edu.pk/geceapi/fetch_offered_coursesN.php?cohort=2025)
+
+fetch courses based on student:
+https://results.gece.edu.pk/geceapi/fetchcoursesstudentN.php?RollNumber=42027&SessionID=11 
+
+fetch courses based on faculty:
+https://results.gece.edu.pk/geceapi/fetch_faculty_coursesN.php?FacultyID=4&SessionID=11
+
+
+fetch students by cohort:
+https://results.gece.edu.pk/geceapi/fetch_students_by_cohortN.php?   ex:(cohort=value)
+
+
+academic sesssios:
+https://results.gece.edu.pk/geceapi/Academic_Sessions.php
+
+create new section
+https://results.gece.edu.pk/geceapi/create_new_sectionN.php?
+for example
+https://results.gece.edu.pk/geceapi/create_new_sectionN.php?CourseID=19&Sectionname=sectionA&SessionID=11
+
+
+delete Section:
+https://results.gece.edu.pk/geceapi/delete_this_sectionN.php? 
+(SectionID)
+
+fetch sections:
+https://results.gece.edu.pk/geceapi/fetch_sectionsN.php?
+(CourseID,SessionID)
+
+fetch section student:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/fetch_student_sections.php?SessionID=12&CourseID=8&RollNumber=42413
+
+add students to section:
+https://results.gece.edu.pk/geceapi/add_students_to_sectionN.php?
+for example:
+https://results.gece.edu.pk/geceapi/add_students_to_sectionN.php?SessionID=11&CourseID=25&SectionID=70&rollNumber=42201
+
+fetch student added to section:
+https://results.gece.edu.pk/geceapi/fetch_section_studentsN.php?
+for example:
+https://results.gece.edu.pk/geceapi/fetch_section_studentsN.php?SessionID=11&CourseID=28&SectionID=72
+
+delete student from section:
+https://results.gece.edu.pk/geceapi/remove_students_from_sectionN.php
+
+ 
+new api for marking attendance :
+Mark_New_Attendance.php?SectionID&SessionID&AttendanceStatus&CourseID&UserID&Type&Date&RollNumber
+
+mark new attendance:
+mark_new_attendanceN:
+for example
+AttandanceStatus, RollNumber, Date, SessionID,CourseID,SectionID.
+https://results.gece.edu.pk/geceapi/mark_new_attendanceN.php?RollNumber=42202&CourseID=26&SessionID=11&SectionID=255&Date=2024-12-19&AttendanceStatus=present 
+
+view Attendance api:
+https://results.gece.edu.pk/geceapi/fetch_attendance_admin.php?
+SessionID=11&CourseID=18&SectionID=263&Date=2024-12-24    
+
+
+
+fetch all the attendance of a student:
+https://results.gece.edu.pk/geceapi/fetch_attendanceN.php?RollNumber=42436&SessionID=11&CourseID=5
+   
+update Attendance Api:
+https://results.gece.edu.pk/geceapi/update_attendanceN.php?
+SessionID=11&CourseID=19&SectionID=261&Date=2024-12-24&RollNumber=42211&AttendanceStatus=late 
+status is what needs to be changed 
+
+new update attendance api:
+UpdateAttendance.php?SessionID=11&CourseID=19&SectionID=261&Date=2024-12-24&RollNumber=42211&AttendanceStatus=late&UserID&Type
+
+fetch dates:
+https://results.gece.edu.pk/geceapi/fetch_attendance_dates.php?SessionID=11&CourseID=5
+
+fetch attendance details:
+https://results.gece.edu.pk/geceapi/fetch_attendance_details.php?SessionID=11&CourseID=5&Date=2025-01-23&SectionID=31
+
+secret api key for testing:
+z8p3JuLm6V7c9vwXG9K8TrVt5KqXxA5RfjNVu2WnNAs
+
+list of departments in complaint: 
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/Departments.php
+
+generate complaint:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/GenerateComplaint.php?
+UserID=1&Department=IT&Name=Manal Mukhtar&Email=MM1901@gece.edu.pk&Type=complaint&UserType=Student&Complaint=testing complaint
+
+fetch departments comapliants:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/FetchDepartmentsComplaints.php?Role=Admin&Department=Chief Executive&Status=In Process
+
+Add complaint remarks:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/AddComplaintRemarks.php?UserID=1&ID=320&Status=false&remarks=testing false complaint
+Email & Name will also be sent now
+
+
+fetch Own Complaints:
+https://campusconnect.gece.edu.pk/ede00ce79675ee6a84b33a26243d45a0/fetch_own_complaints.php?Status=False&Email=anum@gece.edu.pk
+
