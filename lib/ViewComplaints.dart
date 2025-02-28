@@ -40,6 +40,14 @@ class _ViewComplaintsState extends State<ViewComplaints> {
         department: department!,
         status: selectedStatus,
       );
+
+      // Decode the complaint strings
+      for (var complaint in fetchedComplaints) {
+        if (complaint['Complaint'] != null) {
+          complaint['Complaint'] = Uri.decodeComponent(complaint['Complaint']);
+        }
+      }
+
       setState(() {
         complaints = fetchedComplaints;
       });

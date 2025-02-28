@@ -15,10 +15,10 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
   String? _sessionID;
   String? _courseID;
   String? _sectionID;
-  String? _userRole; // Store user role
+  String? _userRole;
   List<Map<String, dynamic>> _attendanceRecords = [];
-  List<String> _attendanceDates = []; // List to hold attendance dates
-  String? _selectedDate; // Selected date from dropdown
+  List<String> _attendanceDates = [];
+  String? _selectedDate;
   bool _isLoading = true;
   String _error = '';
 
@@ -32,10 +32,8 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _sessionID = prefs.getString('SessionID');
-      _userRole = prefs.getString('UserRole'); // Load user role
-
-      // Debug statement to print the user role in the console
-      print('Loaded User Role: $_userRole');
+      _userRole = prefs.getString('UserRole');
+      print('Loaded UserRole: $_userRole');
 
       String? courseIDsString = prefs.getString('CourseIDs');
       if (courseIDsString != null) {
@@ -50,7 +48,6 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       _isLoading = false;
     });
 
-    // Fetch attendance dates for all roles
     await _fetchAttendanceDates();
   }
 
@@ -118,12 +115,12 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String userID;
-      String type = prefs.getString('UserRole') ?? ''; // Get the role for Type
+      String type = prefs.getString('UserRole') ?? '';
 
       if (type == 'Faculty') {
-        userID = prefs.getString('FacultyID') ?? ''; // Get FacultyID
+        userID = prefs.getString('FacultyID') ?? '';
       } else if (type == 'Admin') {
-        userID = prefs.getString('AdminID') ?? ''; // Get AdminID
+        userID = prefs.getString('AdminID') ?? '';
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error: Invalid user role.')),
@@ -131,7 +128,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         return;
       }
 
-      // Log the payload being sent
+      // Log the payload
       print('DEBUG: Updating attendance with the following parameters:');
       print('DEBUG: SessionID: $_sessionID');
       print('DEBUG: CourseID: $_courseID');
@@ -149,18 +146,17 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
         date: _selectedDate!,
         rollNumber: rollNumber,
         attendanceStatus: newStatus,
-        userID: userID,      // Pass the UserID
-        type: type,          // Pass the Type
-        // updateTime: updateTime, // Removed UpdateTime
+        userID: userID,
+        type: type,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Attendance updated successfully')),
       );
 
-      _fetchAttendanceRecords(); // Refresh the attendance records
+      _fetchAttendanceRecords();
     } catch (e) {
-      print('ERROR: Error updating attendance: $e'); // Log the error
+      print('ERROR: Error updating attendance: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error updating attendance: $e')),
       );
@@ -176,7 +172,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
       case 'late':
         return Colors.yellow.shade100;
       default:
-        return Colors.grey.shade200; // Default color for unknown statuses
+        return Colors.grey.shade200;
     }
   }
 
@@ -213,7 +209,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                 setState(() {
                   _selectedDate = newValue;
                 });
-                _fetchAttendanceRecords(); // Fetch attendance for the selected date
+                _fetchAttendanceRecords();
               },
               items: _attendanceDates.map<DropdownMenuItem<String>>((String date) {
                 return DropdownMenuItem<String>(
@@ -234,7 +230,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                     child: DataTable(
                       columns: const [
                         DataColumn(label: Text('Roll Number')),
-                        DataColumn(label: Text('Name')), // New column for Name
+                        DataColumn(label: Text('Name')),
                         DataColumn(label: Text('Date')),
                         DataColumn(label: Text('Present')),
                         DataColumn(label: Text('Absent')),
@@ -242,7 +238,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                       ],
                       rows: _attendanceRecords.map((record) {
                         String rollNumber = record['RollNumber'] ?? '';
-                        String name = record['Name'] ?? ''; // Get the name from the record
+                        String name = record['Name'] ?? '';
                         String attendanceStatus = record['AttendanceStatus'] ?? '';
 
                         bool isPresent = attendanceStatus.toLowerCase() == 'present';
@@ -255,7 +251,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                           ),
                           cells: [
                             DataCell(Text(rollNumber)),
-                            DataCell(Text(name)), // Display the name
+                            DataCell(Text(name)),
                             DataCell(Text(record['Date'] ?? '')),
                             DataCell(
                               Checkbox(
@@ -263,7 +259,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                                 onChanged: (value) {
                                   if (value != null) {
                                     if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
-                                      // Show alert if trying to edit a non-current date
+
                                       _showAlertDialog('You cannot edit attendance for this date.');
                                     } else {
                                       _updateAttendanceStatus(
@@ -279,7 +275,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                                 onChanged: (value) {
                                   if (value != null) {
                                     if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
-                                      // Show alert if trying to edit a non-current date
+
                                       _showAlertDialog('You cannot edit attendance for this date.');
                                     } else {
                                       _updateAttendanceStatus(
@@ -295,7 +291,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
                                 onChanged: (value) {
                                   if (value != null) {
                                     if (_userRole == 'Faculty' && _selectedDate != DateFormat('yyyy-MM-dd').format(DateTime.now())) {
-                                      // Show alert if trying to edit a non-current date
+
                                       _showAlertDialog('You cannot edit attendance for this date.');
                                     } else {
                                       _updateAttendanceStatus(
@@ -330,7 +326,7 @@ class _EditAttendanceScreenState extends State<EditAttendanceScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('OK'),
             ),

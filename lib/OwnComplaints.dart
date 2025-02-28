@@ -31,7 +31,7 @@ class _OwnComplaintsState extends State<OwnComplaints> {
     _email = prefs.getString('Email');
 
     if (_email != null) {
-      await _fetchComplaints('In Process');
+      await _fetchComplaints('InProcess');
     } else {
       setState(() {
         _isLoading = false;
@@ -49,6 +49,13 @@ class _OwnComplaintsState extends State<OwnComplaints> {
       email: _email!,
       status: status,
     );
+
+    // Decode the complaint strings
+    for (var complaint in complaints) {
+      if (complaint['Complaint'] != null) {
+        complaint['Complaint'] = Uri.decodeComponent(complaint['Complaint']);
+      }
+    }
 
     setState(() {
       _complaints = complaints;
@@ -348,7 +355,7 @@ class _OwnComplaintsState extends State<OwnComplaints> {
     Color statusColor = Colors.orange;
     if (status == 'Resolved') statusColor = Colors.green;
     if (status == 'False') statusColor = Colors.red;
-    if (status == 'In Process') statusColor = Colors.yellow;
+    if (status == 'InProcess') statusColor = Colors.yellow;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

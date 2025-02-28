@@ -19,11 +19,11 @@ class AddStudentToSectionScreen extends StatefulWidget {
 class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
   List<Map<String, dynamic>> students = [];
   List<Map<String, dynamic>> addedStudents = [];
-  List<String> selectedRollNumbers = []; // List to hold selected roll numbers
+  List<String> selectedRollNumbers = [];
   List<String> sectionIDs = [];
   List<String> courseIDs = [];
   String? sessionID;
-  bool isStudentMapped = false;// Flag to enable/disable the "View Mapped Students" button
+  bool isStudentMapped = false;
   bool isLoading = false;
 
 
@@ -144,7 +144,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
     }
 
     setState(() {
-      isLoading = true; // Start loading
+      isLoading = true;
     });
 
     try {
@@ -173,12 +173,10 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
         SnackBar(content: Text('Selected students mapped to all sections successfully!')),
       );
 
-      // Enable the "View Mapped Students" button
       setState(() {
         isStudentMapped = true;
       });
 
-      // Fetch updated mapped students
       await _fetchMappedStudents();
     } catch (e) {
       print('Error mapping students: $e');
@@ -187,12 +185,11 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
       );
     } finally {
       setState(() {
-        isLoading = false; // End loading
+        isLoading = false;
       });
     }
   }
 
-  // Confirmation alert for removing students
   Future<void> _confirmAndRemoveStudent(String sessionID, String courseID,
       String rollNumber) async {
     showDialog(
@@ -205,19 +202,19 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 await _removeStudentFromSection(
                     sessionID, courseID, rollNumber);
               },
               child: Text('Remove', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Set the button color
+                backgroundColor: Colors.red,
               ),
             ),
           ],
@@ -272,7 +269,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
             children: [
               Text('Select Students to Map to Sections'),
               SizedBox(height: 10),
-              // Multi-select students using MultiSelectDropdown
+              // Multi select students using MultiSelectDropdown
               MultiSelectDialogField(
                 items: students.map((student) {
                   return MultiSelectItem(student['RollNumber'],
@@ -308,7 +305,7 @@ class _AddStudentToSectionScreenState extends State<AddStudentToSectionScreen> {
               ),
               SizedBox(height: 10),
               Container(
-                height: 300, // Fixed height for the DataTable2 widget
+                height: 300,
                 child: DataTable2(
                   columnSpacing: 12,
                   horizontalMargin: 12,

@@ -130,7 +130,6 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
                               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          // Status indicators displayed vertically
                           Column(
                             children: [
                               _buildStatusIndicator(Colors.green, 'Present'),
@@ -191,7 +190,6 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
       return Center(child: Text('No data available.'));
     }
 
-    // Determine status based on absentCount
     String status;
     if (absentCount >= 8) {
       status = 'Fail';
@@ -225,10 +223,10 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
     ];
 
     return SizedBox(
-      height: 200, // Set a fixed height for the pie chart
+      height: 200,
       child: Column(
         children: [
-          Expanded( // Wrap the PieChart with Expanded
+          Expanded(
             child: PieChart(
               PieChartData(
                 sections: pieChartData,
@@ -238,7 +236,6 @@ class _ViewAttendanceSummaryState extends State<ViewAttendanceSummary> {
               ),
             ),
           ),
-          // Display the status below the pie chart
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(

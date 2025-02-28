@@ -1142,9 +1142,9 @@ class ApiService {
     required int complaintID,
     required String status,
     required String remarks,
-    required String name, // New parameter
-    required String email, // New parameter
-    required String department, // New parameter
+    required String name,
+    required String email,
+    required String department,
   }) async {
     // Construct the URL with query parameters
     final String url = '$baseUrl/AddComplaintRemarks.php?UserID=$userID&ID=$complaintID&Status=${Uri.encodeComponent(status)}&remarks=${Uri.encodeComponent(remarks)}&Name=${Uri.encodeComponent(name)}&Email=${Uri.encodeComponent(email)}&Department=${Uri.encodeComponent(department)}';

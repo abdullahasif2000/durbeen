@@ -27,7 +27,7 @@ class _UserProfileState extends State<UserProfile> {
 
   Future<void> _fetchUserData() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? savedRole = prefs.getString('UserRole'); // Fetch role from SharedPreferences
+    final String? savedRole = prefs.getString('UserRole');
     setState(() {
       userRole = savedRole ?? '';
     });
@@ -67,7 +67,7 @@ class _UserProfileState extends State<UserProfile> {
         });
       } else if (userRole == 'Admin') {
         final List<Map<String, dynamic>> adminData = await ApiService().fetchAdminData();
-        final savedAdminEmail = prefs.getString('AdminEmail'); // Fetch saved AdminEmail
+        final savedAdminEmail = prefs.getString('AdminEmail');
         final admin = adminData.firstWhere(
               (admin) => admin['Email'] == savedAdminEmail,
           orElse: () => {},
@@ -92,27 +92,26 @@ class _UserProfileState extends State<UserProfile> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final String imagePath = '${appDocDir.path}/profile_image.png'; // Path in document directory
+      final String imagePath = '${appDocDir.path}/profile_image.png';
       final File imageFile = File(imagePath);
 
-      // Save image to document directory
       await imageFile.writeAsBytes(await pickedFile.readAsBytes());
 
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profileImagePath', imagePath); // Save image path
+      await prefs.setString('profileImagePath', imagePath);
 
       setState(() {
-        profileImage = imageFile; // Update UI
+        profileImage = imageFile;
       });
     }
   }
 
   Future<void> _loadProfileImage() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? imagePath = prefs.getString('profileImagePath'); // Retrieve image path
+    final String? imagePath = prefs.getString('profileImagePath');
     if (imagePath != null) {
       setState(() {
-        profileImage = File(imagePath); // Load the image
+        profileImage = File(imagePath);
       });
     }
   }
@@ -130,7 +129,6 @@ class _UserProfileState extends State<UserProfile> {
           ? SingleChildScrollView(
         child: Column(
           children: [
-            // Header Section with User Avatar
             Container(
               width: double.infinity,
               color: Colors.orange[700],
@@ -139,7 +137,7 @@ class _UserProfileState extends State<UserProfile> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    onTap: _pickImage, // Open image picker on tap
+                    onTap: _pickImage,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -240,7 +238,6 @@ class _UserProfileState extends State<UserProfile> {
     );
   }
 
-  // Helper Widget for Displaying Rows of Information
   Widget _buildInfoRow(String title, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),

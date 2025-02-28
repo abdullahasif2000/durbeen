@@ -97,7 +97,7 @@ class _AttendanceOptionScreenState extends State<AttendanceOptionScreen> {
 
   Widget _buildButton(BuildContext context, {required String label, required IconData icon, required VoidCallback onTap, EdgeInsets? margin}) {
     return Container(
-      margin: margin, // Apply margin here
+      margin: margin,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(

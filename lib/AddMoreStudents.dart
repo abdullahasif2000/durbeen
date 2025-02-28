@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
@@ -109,7 +108,7 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
             );
           },
         );
-        continue; // Skip adding this student
+        continue;
       }
 
       // Call the API to add the student
@@ -134,7 +133,7 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
     // Refresh the mapped students list after adding
     await _fetchMappedStudents();
     setState(() {
-      selectedRollNumbers.clear(); // Clear selected roll numbers after adding
+      selectedRollNumbers.clear();
     });
   }
 
@@ -148,11 +147,11 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
           content: Text('Are you sure you want to remove student with Roll Number $rollNumber?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true), // Confirm
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Yes'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('No'),
             ),
           ],
@@ -161,7 +160,6 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
     );
 
     if (confirm == true) {
-      // Call the API to remove the student
       try {
         bool success = await ApiService().removeStudentFromSection(
           rollNumber: rollNumber,
@@ -171,7 +169,7 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
 
         if (success) {
           print('Successfully removed student: $rollNumber');
-          // Refresh the mapped students list after removal
+          // Refresh the mapped students list after removing
           await _fetchMappedStudents();
         } else {
           print('Failed to remove student: $rollNumber');
@@ -231,7 +229,7 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: 300, // Fixed height for DataTable
+                height: 300,
                 child: Scrollbar(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -247,7 +245,7 @@ class _AddMoreStudentsState extends State<AddMoreStudents> {
                           DataColumn(label: Text('Session ID')),
                           DataColumn(label: Text('Course ID')),
                           DataColumn(label: Text('Section ID')),
-                          DataColumn(label: Text('Actions')), // New column for actions
+                          DataColumn(label: Text('Actions')),
                         ],
                         rows: mappedStudents.map((student) {
                           return DataRow(

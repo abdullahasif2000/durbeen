@@ -17,7 +17,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   DateTime? _selectedDate;
   bool _isAttendanceMarked = false;
   bool isLoading = false;
-  String? _userRole; // Store user role
+  String? _userRole;
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<List<Map<String, dynamic>>> _loadAndFetchStudents() async {
     final prefs = await SharedPreferences.getInstance();
-    _userRole = prefs.getString('UserRole'); // Load user role
+    _userRole = prefs.getString('UserRole');
 
     final sessionID = prefs.getString('SessionID');
     final courseID = prefs.getString('CourseIDs') ?? '[]';
@@ -50,11 +50,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       SectionID: sectionID,
     );
 
-    // Initialize attendanceData with all students as present
     attendanceData = students.map((student) {
       return {
         'RollNumber': student['RollNumber'],
-        'AttendanceStatus': 'present', // Default status
+        'AttendanceStatus': 'present',
       };
     }).toList();
 
@@ -79,10 +78,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
 
     try {
-      // Check attendance for the selected course and date
       final isMarked = await ApiService().checkAttendanceMarked(
         sessionID: sessionID,
-        courseID: parsedCourseIDs.first.toString(), // Use the current course ID
+        courseID: parsedCourseIDs.first.toString(),
         sectionID: sectionID,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
       );
@@ -97,22 +95,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _updateAttendance(String rollNumber, String status) {
-    if (_isAttendanceMarked) return; // Prevent updates if attendance is marked
+    if (_isAttendanceMarked) return;
 
-    // Check if status is valid
+
     if (!['present', 'absent', 'late'].contains(status)) return;
 
     final index = attendanceData.indexWhere((entry) =>
     entry['RollNumber'] == rollNumber);
 
     if (index == -1) {
-      // If the student is not in attendanceData, add them with the selected status
       attendanceData.add({
         'RollNumber': rollNumber,
         'AttendanceStatus': status,
       });
     } else {
-      // Update the attendance status
       attendanceData[index]['AttendanceStatus'] = status;
     }
 
@@ -142,20 +138,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
-      // Retrieve UserID based on role
       String userID;
-      String type = prefs.getString('UserRole') ?? ''; // Get the role for Type
+      String type = prefs.getString('UserRole') ?? '';
 
       if (type == 'Faculty') {
-        userID = prefs.getString('FacultyID') ?? ''; // Get FacultyID
+        userID = prefs.getString('FacultyID') ?? '';
       } else if (type == 'Admin') {
-        userID = prefs.getString('AdminID') ?? ''; // Get AdminID
+        userID = prefs.getString('AdminID') ?? '';
       } else {
         _showErrorDialog('Error: Invalid user role.');
         return;
       }
 
-      // Show loading dialog
       final loadingDialog = AlertDialog(
         content: Row(
           children: const [
@@ -168,7 +162,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       showDialog(
         context: context,
-        barrierDismissible: false, // Prevent dismissing the dialog by tapping outside
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return loadingDialog;
         },
@@ -183,8 +177,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           sectionID: sectionID,
           date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
           attendanceStatus: entry['AttendanceStatus'],
-          userID: userID, // Pass the UserID
-          type: type,     // Pass the Type
+          userID: userID,
+          type: type,
         );
 
         if (!success) {
@@ -192,11 +186,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         }
       }
 
-      Navigator.of(context).pop(); // Dismiss the loading dialog
+      Navigator.of(context).pop();
 
       if (allSuccess) {
         setState(() {
-          // Retain attendanceData to show statuses but keep interaction disabled
           _isAttendanceMarked = true;
         });
         print('All attendance records successfully submitted.');
@@ -223,7 +216,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('OK'),
             ),
@@ -243,7 +236,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('OK'),
             ),
@@ -257,11 +250,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final now = DateTime.now();
     DateTime? firstDate;
 
-    // Set the first date based on user role
+    // Set the first date based on userrole
     if (_userRole == 'Admin') {
-      firstDate = DateTime(2000); // No limit, set to a very early date
+      firstDate = DateTime(2000);
     } else {
-      firstDate = now; // Limit to the current date for Faculty
+      firstDate = now;
     }
 
     final selected = await showDatePicker(
@@ -275,7 +268,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       setState(() {
         _selectedDate = selected;
       });
-      _checkAttendanceMarked(); // Check attendance status after date is picked
+      _checkAttendanceMarked();
     }
   }
 
@@ -332,8 +325,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      columnSpacing: 8.0, // Adjust spacing between columns
-                      dataRowHeight: 40.0, // Adjust height of each row
+                      columnSpacing: 8.0,
+                      dataRowHeight: 40.0,
                       columns: [
                         DataColumn(label: Container(width: 80, child: const Text('Roll Number', style: TextStyle(fontSize: 14)))),
                         DataColumn(label: Container(width: 120, child: const Text('Name', style: TextStyle(fontSize: 14)))),
@@ -354,7 +347,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               Checkbox(
                                 value: _isMarked(rollNumber, 'present'),
                                 onChanged: _isAttendanceMarked
-                                    ? null // Disable if attendance is marked
+                                    ? null
                                     : (value) {
                                   if (value == true) {
                                     _updateAttendance(rollNumber, 'present');
@@ -366,7 +359,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               Checkbox(
                                 value: _isMarked(rollNumber, 'absent'),
                                 onChanged: _isAttendanceMarked
-                                    ? null // Disable if attendance is marked
+                                    ? null
                                     : (value) {
                                   if (value == true) {
                                     _updateAttendance(rollNumber, 'absent');
@@ -378,7 +371,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               Checkbox(
                                 value: _isMarked(rollNumber, 'late'),
                                 onChanged: _isAttendanceMarked
-                                    ? null // Disable if attendance is marked
+                                    ? null
                                     : (value) {
                                   if (value == true) {
                                     _updateAttendance(rollNumber, 'late');
@@ -439,6 +432,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (index != -1) {
       return attendanceData[index]['AttendanceStatus'] == status;
     }
-    return status == 'present'; // By default, "Present" is selected
+    return status == 'present';
   }
 }

@@ -23,10 +23,8 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
   final TextEditingController sectionController = TextEditingController();
   bool isSectionCreated = false;
 
-  // Shared Preferences to get SessionID
   String sessionID = '0';
 
-  // Store section details for displaying in a card
   String? createdSectionName;
   List<Map<String, dynamic>>? createdCourses;
 
@@ -55,18 +53,15 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
     return [];
   }
 
-  // Check if section already exists
   Future<bool> checkIfSectionExists(
       String sectionName, List<String> selectedCourseIDs) async {
     try {
       for (var courseID in selectedCourseIDs) {
-        // Make the API call to fetch sections for the course
         final response = await ApiService().fetchSections(
           courseID: courseID,
           sessionID: sessionID,
         );
 
-        // Check if any of the fetched sections already have the same name
         for (var section in response) {
           if (section['SectionName'] == sectionName) {
             return true;
@@ -77,7 +72,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       debugPrint('Error checking existing sections: $e');
       return false;
     }
-    return false; // no match found
+    return false;
   }
 
   // API Call to create a new section
@@ -121,7 +116,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
       return;
     }
 
-    List<String> createdSectionIDs = []; // List to store SectionIDs for selected courses
+    List<String> createdSectionIDs = [];
 
     try {
       for (var courseID in selectedCourseIDs) {
@@ -136,7 +131,7 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
           String newSectionID = response['SectionID'].toString();
           debugPrint('New SectionID: $newSectionID');
 
-          // Add the new SectionID to the list
+
           createdSectionIDs.add(newSectionID);
         } else {
           debugPrint('Failed response: ${response.toString()}');
@@ -146,11 +141,10 @@ class _CreateSectionScreenState extends State<CreateSectionScreen> {
         }
       }
 
-      // Overwrite the list of SectionIDs in SharedPreferences
+
       if (createdSectionIDs.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
 
-        // Convert List<String> to JSON String for storage
         String sectionIDsJson = jsonEncode(createdSectionIDs);
         await prefs.setString('CreatedSectionIDs', sectionIDsJson);
 

@@ -7,7 +7,7 @@ import 'ViewAttendanceScreen.dart';
 import 'EditAttendanceScreen.dart';
 
 class SelectSectionScreen extends StatefulWidget {
-  final String option; // Make this non-nullable
+  final String option;
 
   const SelectSectionScreen({Key? key, required this.option}) : super(key: key);
 
@@ -42,14 +42,14 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
       List<Map<String, dynamic>> sections;
 
       if (userRole == 'Student' && rollNumber != null) {
-        // Fetch sections for students
+
         sections = await ApiService().fetchStudentSections(
           sessionID: sessionId,
           courseID: courseId.toString(),
           rollNumber: rollNumber,
         );
       } else {
-        // Fetch sections for admin or faculty
+
         sections = await ApiService().fetchSections(
           sessionID: sessionId,
           courseID: courseId.toString(),
@@ -57,10 +57,9 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
       }
 
       for (var section in sections) {
-        // Normalize SectionID field
         final sectionId = section['id'] ?? section['SectionID'];
-        section['SectionID'] = sectionId; // Ensure 'SectionID' exists
-        section.remove('id'); // Optionally remove 'id' if it exists and isn't needed
+        section['SectionID'] = sectionId;
+        section.remove('id');
 
         // Fetch total students for the section
         final totalStudents = await _fetchTotalStudents(
@@ -68,7 +67,7 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
           courseId.toString(),
           sectionId.toString(),
         );
-        section['totalStudents'] = totalStudents; // Add total students to section map
+        section['totalStudents'] = totalStudents;
       }
 
       allSections.addAll(sections);
@@ -78,13 +77,13 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
   }
 
   Future<int> _fetchTotalStudents(String sessionId, String courseId, String sectionId) async {
-    // Use the SectionID instead of the id
+
     final students = await ApiService().fetchMappedStudents(
       SessionID: sessionId,
       CourseID: courseId,
-      SectionID: sectionId, // This should be the SectionID from the section map
+      SectionID: sectionId,
     );
-    return students.length; // Return the total number of students
+    return students.length;
   }
 
   @override
@@ -123,14 +122,13 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
 
                 return GestureDetector(
                   onTap: () async {
-                    // Save SectionID to SharedPreferences
+
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('SelectedSectionID', section['SectionID'].toString());
 
-                    // Print the saved SectionID to console
+
                     print('Selected SectionID: ${section['SectionID']}');
 
-                    // Navigate to the appropriate screen based on the option
                     if (widget.option == 'Mark') {
                       Navigator.push(
                         context,
@@ -165,7 +163,7 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Display Section Name in bold
+
                               Text(
                                 section['SectionName'] ?? 'N/A',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -173,7 +171,7 @@ class _SelectSectionScreenState extends State<SelectSectionScreen> {
                               const SizedBox(height: 8),
                               Text('CourseID: ${section['CourseID'] ?? 'N/A'}'),
                               Text('Session ID: ${section['SessionID'] ?? 'N/A'}'),
-                              Text('Section ID: ${section['SectionID'] ?? 'N/A'}'), // Added SectionID field
+                              Text('Section ID: ${section['SectionID'] ?? 'N/A'}'),
                               Text('Total Students: ${section['totalStudents'] ?? 0}'),
                             ],
                           ),

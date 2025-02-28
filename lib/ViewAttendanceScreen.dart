@@ -78,7 +78,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
           _courseID!,
         );
 
-        // Map the response to the required format
+
         _attendanceRecords = records.map((record) {
           return {
             'Date': record['Date'],
@@ -88,7 +88,7 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
           };
         }).toList();
       } else {
-        // Fetch attendance details for teachers or other roles
+
         if (_selectedDate == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please select a date')),
@@ -110,14 +110,13 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
           _sectionID!,
         );
 
-        // Map the response to the required format
         _attendanceRecords = records.map((record) {
           return {
             'Date': record['Date'],
             'AttendanceStatus': record['AttendanceStatus'],
             'RollNumber': record['RollNumber'],
             'WarningsSent': record['WarningsSent'] ?? '0',
-            'Name': record['Name'], // Include Name for other roles
+            'Name': record['Name'],
           };
         }).toList();
       }

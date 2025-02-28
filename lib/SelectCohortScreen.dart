@@ -7,8 +7,8 @@ import 'SelectSectionScreen.dart';
 import 'dart:convert';
 
 class SelectCohortScreen extends StatefulWidget {
-  final String source; // Determines the source module
-  final String? option; // Optional parameter for the action (Mark, Edit, View)
+  final String source;
+  final String? option;
 
   const SelectCohortScreen({Key? key, required this.source, this.option}) : super(key: key);
 
@@ -32,16 +32,15 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
 
   Future<void> _loadUserRoleAndCohort() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedCohort = prefs.getString('cohort'); // Load the cohort from SharedPreferences
+    final savedCohort = prefs.getString('cohort');
     setState(() {
-      _role = prefs.getString('UserRole'); // Load user role
+      _role = prefs.getString('UserRole');
       if (_role == 'Student') {
-        _selectedCohort = savedCohort; // Automatically set the cohort for students
+        _selectedCohort = savedCohort;
         if (_selectedCohort != null) {
-          _coursesFuture = fetchCourses(_selectedCohort!); // Fetch courses for the pre-selected cohort
+          _coursesFuture = fetchCourses(_selectedCohort!);
         }
       } else if (_role == 'Faculty') {
-        // For Faculty, directly fetch courses without cohort
         _coursesFuture = fetchFacultyCourses();
       }
     });
@@ -62,7 +61,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   Future<List<Map<String, dynamic>>> fetchCourses(String cohort) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final sessionID = prefs.getString('SessionID') ?? ''; // Ensure sessionID is not null
+      final sessionID = prefs.getString('SessionID') ?? '';
       if (sessionID.isEmpty) {
         throw Exception("SessionID is required but not found.");
       }
@@ -78,7 +77,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
         debugPrint('Courses fetched for student: ${response.toString()}');
         return response;
       } else if (_role == 'Admin') {
-        // Pass SessionID along with cohort for Admin
+
         final response = await ApiService().fetchCourses(cohort, sessionID);
         debugPrint('Courses fetched for admin: ${response.toString()}');
         return response;
@@ -135,7 +134,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // For Admin, show the cohort dropdown
+
             if (_role == 'Admin')
               FutureBuilder<List<String>>(
                 future: _cohortsFuture,
@@ -205,19 +204,19 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
                           return DataRow(
                             selected: isSelected,
                             onSelectChanged: widget.source == 'Courses'
-                                ? null // Disable selection if source is 'Courses'
+                                ? null
                                 : (value) {
                               setState(() {
                                 if (widget.source == 'Attendance') {
-                                  // For Attendance, allow only single selection
+
                                   if (value == true) {
-                                    _selectedCourses.clear(); // Clear previous selections
-                                    _selectedCourses.add(course); // Add the newly selected course
+                                    _selectedCourses.clear();
+                                    _selectedCourses.add(course);
                                   } else {
-                                    _selectedCourses.remove(course); // Deselect if unchecked
+                                    _selectedCourses.remove(course);
                                   }
                                 } else {
-                                  // For other sources, allow multiple selections
+
                                   if (value == true) {
                                     if (!_selectedCourses.contains(course)) {
                                       _selectedCourses.add(course);
@@ -319,7 +318,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
   List<DataCell> _getRowCells(Map<String, dynamic> course, int serialNumber) {
     if (_role == 'Admin') {
       return [
-        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text('$serialNumber')),
         DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
         DataCell(Text(course['Name'] ?? 'N/A')),
         DataCell(Text(course['FacultyName'] ?? 'N/A')),
@@ -328,7 +327,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
       ];
     } else if (_role == 'Faculty') {
       return [
-        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text('$serialNumber')),
         DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
         DataCell(Text(course['CCNew'] ?? 'N/A')),
         DataCell(Text(course['Name'] ?? 'N/A')),
@@ -337,7 +336,7 @@ class _SelectCohortScreenState extends State<SelectCohortScreen> {
       ];
     } else if (_role == 'Student') {
       return [
-        DataCell(Text('$serialNumber')), // Use the passed serial number
+        DataCell(Text('$serialNumber')),
         DataCell(Text(course['CourseID']?.toString() ?? 'N/A')),
         DataCell(Text(course['CCOld'] ?? 'N/A')),
         DataCell(Text(course['CCNew'] ?? 'N/A')),

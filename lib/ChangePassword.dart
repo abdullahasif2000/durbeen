@@ -3,9 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
 class ChangePassword extends StatefulWidget {
-  final VoidCallback onPasswordChanged; // Callback for password change
+  final VoidCallback onPasswordChanged;
 
-  const ChangePassword({super.key, required this.onPasswordChanged}); // Constructor
+  const ChangePassword({super.key, required this.onPasswordChanged});
 
   @override
   _ChangePasswordState createState() => _ChangePasswordState();
@@ -18,9 +18,9 @@ class _ChangePasswordState extends State<ChangePassword> {
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  bool _obscureOldPassword = true; // Visibility for old password
-  bool _obscureNewPassword = true; // Visibility for new password
-  bool _obscureConfirmPassword = true; // Visibility for confirm password
+  bool _obscureOldPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   final ApiService apiService = ApiService();
 
@@ -35,7 +35,7 @@ class _ChangePasswordState extends State<ChangePassword> {
       final userRole = prefs.getString('UserRole') ?? '';
       print("Retrieved User Role: $userRole");
 
-      // Validate user role
+
       if (userRole.isEmpty || !['admin', 'student', 'faculty'].contains(userRole.toLowerCase())) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invalid user role. Please log in again.')),
@@ -52,11 +52,11 @@ class _ChangePasswordState extends State<ChangePassword> {
             content: const Text('Are you sure you want to change your password? You will be logged out.'),
             actions: <Widget>[
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false), // User cancels
+                onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancel'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(true), // User confirms
+                onPressed: () => Navigator.of(context).pop(true),
                 child: const Text('Confirm'),
               ),
             ],
@@ -70,41 +70,40 @@ class _ChangePasswordState extends State<ChangePassword> {
       }
 
       try {
-        // Step 1: Verify the old password
         print("Verifying old password for $email with role $userRole...");
-        print("Payload for old password verification: { Email: $email, OldPassword: $oldPassword, Role: $userRole }"); // Print payload
+        print("Payload for old password verification: { Email: $email, OldPassword: $oldPassword, Role: $userRole }");
         final verifyResponse = await apiService.verifyOldPassword(
           email: email,
           oldPassword: oldPassword,
           role: userRole,
         );
 
-        // Log the response from the old password verification
+
         print("Old Password Verification response: $verifyResponse");
 
         if (verifyResponse['success'] == true) {
-          // Step 2: Proceed to change the password
+
           print("Changing password...");
-          print("Payload for password change: { Email: $email, NewPassword: $newPassword, Role: $userRole }"); // Print payload
+          print("Payload for password change: { Email: $email, NewPassword: $newPassword, Role: $userRole }");
           final response = await apiService.changePassword(
             email: email,
-            newPassword: newPassword, // Send new password only
+            newPassword: newPassword,
             type: userRole,
           );
 
-          // Log the response from the change password API call
+
           print("Change Password API response: $response");
 
           if (response['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(response['message'] ?? 'Password changed successfully!')),
             );
-            widget.onPasswordChanged(); // Call the callback here
+            widget.onPasswordChanged();
 
-            // Log out the user by clearing SharedPreferences
-            await prefs.clear(); // Clear all saved preferences
 
-            Navigator.pop(context); // Go back to the previous screen
+            await prefs.clear();
+
+            Navigator.pop(context);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(response['message'] ?? 'Failed to change password.')),
@@ -124,12 +123,11 @@ class _ChangePasswordState extends State<ChangePassword> {
     }
   }
 
-  // Remove strong password validation
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter a password';
     }
-    return null; // Allow any password
+    return null;
   }
 
   @override

@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (role == "Admin") {
             await prefs.setString('AdminEmail', email);
             await prefs.setString('AdminID', response['id']?.toString() ?? '');
-            await prefs.setString('Department', department ?? '');
+              await prefs.setString('Department', department ?? '');
             print("Admin Name: $name");
             print("Department: $department");
           } else if (role == "Faculty") {

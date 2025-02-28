@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
-import 'AddMoreStudents.dart'; // Import the AddMoreStudents screen
+import 'AddMoreStudents.dart';
 
 class ViewSectionScreen extends StatefulWidget {
   final String cohort;
@@ -23,7 +23,6 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     _loadData();
   }
 
-  // Load SessionID and CourseIDs from SharedPreferences
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     sessionID = prefs.getString('SessionID') ?? '';
@@ -35,7 +34,6 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     debugPrint("SessionID loaded: $sessionID");
     debugPrint("CourseIDs loaded: $courseIDs");
 
-    // Fetch sections after loading data
     if (sessionID.isNotEmpty && courseIDs.isNotEmpty) {
       setState(() {
         _sectionsFuture = fetchSections();
@@ -48,7 +46,6 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     }
   }
 
-  // Fetch sections from the API
   Future<List<Map<String, dynamic>>> fetchSections() async {
     List<Map<String, dynamic>> sections = [];
     try {
@@ -61,13 +58,12 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
         if (response != null && response.isNotEmpty) {
           for (var section in response) {
             final sectionID = section['id'];
-            // Fetch the number of students in the section
             final students = await ApiService().fetchMappedStudents(
               SessionID: sessionID,
               CourseID: courseID,
               SectionID: sectionID,
             );
-            section['studentCount'] = students.length; // Add student count to the section
+            section['studentCount'] = students.length;
           }
           sections.addAll(response);
         } else {
@@ -81,7 +77,6 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     return sections;
   }
 
-  // Delete section from the API
   Future<void> deleteSection(String sectionID) async {
     try {
       debugPrint("Attempting to delete section with ID: $sectionID");
@@ -92,7 +87,7 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Section deleted successfully')),
         );
-        _loadData(); // Refresh the list after deletion
+        _loadData();
       } else {
         debugPrint("Failed to delete section. Response: $response");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +102,6 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
     }
   }
 
-  // Show confirmation dialog before deleting a section
   void _confirmDelete(String sectionID) {
     showDialog(
       context: context,
@@ -119,14 +113,14 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(), // Cancel
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                deleteSection(sectionID); // Delete the section
+                Navigator.of(context).pop();
+                deleteSection(sectionID);
               },
               child: const Text('Delete'),
             ),
@@ -189,7 +183,7 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
                       children: [
                         Text('Section ID: ${section['id']}'),
                         Text('Course ID: ${section['CourseID']}'),
-                        Text('Total Students: ${section['studentCount']}'), // Display total students
+                        Text('Total Students: ${section['studentCount']}'),
                       ],
                     ),
                     trailing: Row(
@@ -204,7 +198,7 @@ class _ViewSectionScreenState extends State<ViewSectionScreen> {
                                 builder: (context) => AddMoreStudents(
                                   sectionID: section['id'],
                                   courseID: section['CourseID'],
-                                  cohort: widget.cohort, // Pass cohort here
+                                  cohort: widget.cohort,
                                 ),
                               ),
                             );

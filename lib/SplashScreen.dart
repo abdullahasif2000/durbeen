@@ -11,15 +11,13 @@ class SplashScreen extends StatelessWidget {
     final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
     if (isLoggedIn) {
-      // Fetch saved user role
       final role = prefs.getString('UserRole') ?? 'Admin';
-      // Navigate to ModuleScreen if logged in
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => ModuleScreen(role: role)),
       );
     } else {
-      // Navigate to LoginScreen if not logged in
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -31,7 +29,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
-        onTap: () => checkLoginStatus(context), // Check login status on tap
+        onTap: () => checkLoginStatus(context),
         child: Container(
           color: Colors.white,
           child: Center(

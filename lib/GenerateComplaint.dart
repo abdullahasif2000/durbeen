@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'ComplaintOptions.dart';
 
 class GenerateComplaint extends StatefulWidget {
   const GenerateComplaint({Key? key}) : super(key: key);
@@ -87,12 +88,12 @@ class _GenerateComplaintState extends State<GenerateComplaint> {
 
     // Log the payload
     print('Submitting complaint with payload:');
-    print('User ID: $userId');
+    print('User  ID: $userId');
     print('Department: $selectedDepartmentName');
     print('Name: ${nameController.text}');
     print('Email: ${emailController.text}');
     print('Type: $selectedRequestType');
-    print('User Type: $userRole');
+    print('User  Type: $userRole');
     print('Complaint: $complaint');
 
     // Encode the parameters
@@ -101,7 +102,6 @@ class _GenerateComplaintState extends State<GenerateComplaint> {
     String encodedComplaint = Uri.encodeComponent(complaint);
     String encodedDepartment = Uri.encodeComponent(selectedDepartmentName ?? '');
     String encodedType = Uri.encodeComponent(selectedRequestType ?? '');
-
 
     await ApiService().generateComplaint(
       userId: userId,
@@ -113,8 +113,26 @@ class _GenerateComplaintState extends State<GenerateComplaint> {
       complaint: encodedComplaint,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Complaint submitted!')),
+    // Show alert dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Complaint Submitted'),
+          content: const Text('Your complaint has been submitted successfully.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => ComplaintOptions()),
+                ); // Navigate to ComplaintOptions.dart
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -258,7 +276,7 @@ class _GenerateComplaintState extends State<GenerateComplaint> {
                       _submitComplaint();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please select both fields.')),
+                        const SnackBar(content: Text('Please select all fields.')),
                       );
                     }
                   }

@@ -21,7 +21,9 @@ class ModuleScreen extends StatefulWidget {
 
 class _ModuleScreenState extends State<ModuleScreen> {
   String? selectedSession;
-  String? userRole;  // Variable to store the user role
+  String? userRole;
+  String? userSubRole;
+  String? userDepartment;
   List<Map<String, dynamic>> sessions = [];
 
   @override
@@ -29,27 +31,35 @@ class _ModuleScreenState extends State<ModuleScreen> {
     super.initState();
     _fetchSessions();
     _loadSession();
-    _loadUserRole();  // Load the user role on initialization
+    _loadUserRole();
+    _loadSubRoleAndDepartment();
   }
 
+
+  Future<void> _loadSubRoleAndDepartment() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userSubRole = prefs.getString('Role')?.trim();
+      userDepartment = prefs.getString('Department')?.trim();
+    });
+  }
   Future<void> _fetchSessions() async {
     try {
       final List<dynamic> data = await ApiService().fetchSessions();
 
-      // Find the session where 'Current' is 1
       final currentSession = data.firstWhere(
             (session) => session['Current'] == '1',
-        orElse: () => {'SessionID': '', 'Description': '', 'Current': '0'}, // Return a default map
+        orElse: () => {'SessionID': '', 'Description': '', 'Current': '0'},
       );
 
-      // If a current session is found, set it as the selected session
+
       if (currentSession['SessionID'] != '') {
         setState(() {
-          selectedSession = currentSession['SessionID']; // Use SessionID for selectedSession
+          selectedSession = currentSession['SessionID'];
         });
 
         final SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setString('SessionID', selectedSession ?? ''); // Save the selected session
+        prefs.setString('SessionID', selectedSession ?? '');
         debugPrint('Default selected SessionID: $selectedSession');
       }
 
@@ -104,8 +114,8 @@ class _ModuleScreenState extends State<ModuleScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => CreateSectionScreen(
-            cohort: "Cohort Example", // Use the appropriate cohort
-            selectedCourses: [], // Pass selected courses as needed
+            cohort: "",
+            selectedCourses: [],
           ),
         ),
       );
@@ -119,20 +129,19 @@ class _ModuleScreenState extends State<ModuleScreen> {
   void _logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Get the current profile image path before clearing other data
+
     final String? profileImagePath = prefs.getString('profileImagePath');
 
-    // Clear all keys except 'profileImagePath'
+
     await prefs.clear();
 
-    // Restore the profile image path
     if (profileImagePath != null) {
       await prefs.setString('profileImagePath', profileImagePath);
     }
 
     debugPrint('All SharedPreferences data cleared except profileImagePath.');
 
-    // Navigate to the LoginScreen
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -141,7 +150,6 @@ class _ModuleScreenState extends State<ModuleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // All available modules
     final List<Map<String, dynamic>> modules = [
       {"title": "Attendance", "icon": Icons.check_circle_outline},
       {"title": "Courses", "icon": Icons.book},
@@ -151,17 +159,22 @@ class _ModuleScreenState extends State<ModuleScreen> {
       {"title": "Mapping", "icon": Icons.map},
     ];
 
-    // Filter modules based on role
     final List<Map<String, dynamic>> filteredModules = modules.where((module) {
-      if (widget.role == "Faculty" && module["title"] == "Grades") {
-        return false; // Hide "Grades" for Faculty
+      if (module["title"] == "Attendance") {
+        if (widget.role == "Admin") {
+          return (userSubRole == "Admin") ||
+              (userSubRole == "User" && userDepartment == "Registrar");
+        }
+        // Faculty and Student always see Attendance
+        return widget.role == "Faculty" || widget.role == "Student";
       }
-      if ((widget.role == "Student" || widget.role == "Faculty") && module["title"] == "Mapping") {
-        return false; // Hide "Mapping" for Student and Faculty
-      }
-      return true; // Keep other modules
-    }).toList();
 
+      if (widget.role == "Faculty" && module["title"] == "Grades") return false;
+      if ((widget.role == "Student" || widget.role == "Faculty") &&
+          module["title"] == "Mapping") return false;
+
+      return true;
+    }).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -181,21 +194,20 @@ class _ModuleScreenState extends State<ModuleScreen> {
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.orange, // The color of the header area
+                color: Colors.orange,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Center the logo image
+
                   Center(
                     child: Image.asset(
                       'assets/images/CampusConnect largeWhite.png',
-                      height: 100, // Adjust height as needed
+                      height: 100,
                       fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Display the user role directly in the header area
                   if (userRole != null)
                     Text(
                       userRole!,
@@ -244,13 +256,12 @@ class _ModuleScreenState extends State<ModuleScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ChangePassword(onPasswordChanged: _logout), // Pass the logout function
+                    builder: (context) => ChangePassword(onPasswordChanged: _logout),
                   ),
                 );
               },
             ),
 
-            // Logout option
             ListTile(
               title: const Text('Logout'),
               onTap: _logout,
@@ -279,7 +290,7 @@ class _ModuleScreenState extends State<ModuleScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => SelectCohortScreen(
-                        source: 'Courses', // Pass the source as 'Courses'
+                        source: 'Courses',
                       ),
                     ),
                   );
